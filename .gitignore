@@ -1,0 +1,53 @@
+# Unity .gitignore (basado en el oficial de GitHub)
+
+# Carpetas generadas por Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+
+# Recorder
+/[Rr]ecordings/
+
+# Soluciones e IDE
+/.vs/
+/.gradle/
+/[Ee]xportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# Crashes
+sysinfo.txt
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Logs de crash
+crashlytics-build.properties
+
+# macOS
+.DS_Store
