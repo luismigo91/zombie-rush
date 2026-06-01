@@ -49,4 +49,22 @@ public static class Prims
 
         return go;
     }
+
+    /// <summary>
+    /// Como Make, pero con un sprite concreto (pixel-art) en vez del cuadrado.
+    /// El color actúa como tinte (usa Color.white para mostrar el sprite tal cual).
+    /// </summary>
+    public static GameObject MakeSprite(string name, Sprite sprite, Color color, Vector2 size, Vector3 pos, int sortingOrder = 0)
+    {
+        var go = new GameObject(name);
+        go.transform.position = pos;
+        go.transform.localScale = new Vector3(size.x, size.y, 1f);
+
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = sprite;
+        sr.color = color;
+        sr.sortingOrder = sortingOrder;
+
+        return go;
+    }
 }

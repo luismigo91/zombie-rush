@@ -61,7 +61,7 @@ public class GameBootstrap : MonoBehaviour
     {
         // Jugador cerca del borde inferior, centrado.
         float y = -cameraSize + 0.9f;
-        GameObject go = Prims.Make("Player", new Color(0.3f, 0.85f, 0.4f), new Vector2(0.7f, 0.7f), new Vector3(0f, y, 0f), sortingOrder: 2);
+        GameObject go = Prims.MakeSprite("Player", PixelArt.Player, Color.white, new Vector2(0.85f, 0.85f), new Vector3(0f, y, 0f), sortingOrder: 2);
 
         var col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;

@@ -51,17 +51,25 @@ public class MenuUI : MonoBehaviour
             y += rowH + 12 * u;
         }
 
+        // --- Arma ---
+        y += 6 * u;
+        GUI.Label(new Rect(0, y, w, 46 * u), "ARMA", header);
+        y += 56 * u;
+        DrawWeaponRow(margin, y, contentW, 92 * u, u, rowName, rowVal, buyBtn);
+        y += 92 * u + 16 * u;
+
         // --- Música on/off ---
         float rw = w * 0.5f, rh = 70 * u;
         string mLabel = Music.Muted ? "Música: OFF" : "Música: ON";
-        if (GUI.Button(new Rect((w - rw) * 0.5f, h - rh * 2f - 36 * u, rw, rh), mLabel, smallBtn))
+        if (GUI.Button(new Rect((w - rw) * 0.5f, y, rw, rh), mLabel, smallBtn))
         {
             Sfx.Click();
             Music.Muted = !Music.Muted;
         }
+        y += rh + 12 * u;
 
         // --- Reiniciar progreso (pruebas) ---
-        if (GUI.Button(new Rect((w - rw) * 0.5f, h - rh - 24 * u, rw, rh), "Reiniciar progreso", smallBtn))
+        if (GUI.Button(new Rect((w - rw) * 0.5f, y, rw, rh), "Reiniciar progreso", smallBtn))
             Upgrades.ResetAll();
     }
 
@@ -102,6 +110,45 @@ public class MenuUI : MonoBehaviour
                 Upgrades.TryBuy(stat);
             }
             GUI.enabled = true;
+        }
+    }
+
+    void DrawWeaponRow(float x, float y, float width, float height, float u,
+                       GUIStyle nameStyle, GUIStyle valStyle, GUIStyle buyStyle)
+    {
+        GUI.color = new Color(1f, 1f, 1f, 0.07f);
+        GUI.DrawTexture(new Rect(x, y, width, height), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        float padX = 18f * u;
+        GUI.Label(new Rect(x + padX, y + 8f * u, width * 0.6f, height * 0.5f),
+            $"Equipada: {Weapons.Name(Weapons.Equipped)}", nameStyle);
+
+        float bw = width * 0.36f, bh = height * 0.66f;
+        var bRect = new Rect(x + width - bw - padX, y + (height - bh) * 0.5f, bw, bh);
+
+        if (!Weapons.Owns(WeaponId.Escopeta))
+        {
+            GUI.Label(new Rect(x + padX, y + height * 0.5f, width * 0.6f, height * 0.45f),
+                "Escopeta: 3 perdigones", valStyle);
+            GUI.enabled = Economy.Coins >= Weapons.EscopetaCost;
+            if (GUI.Button(bRect, $"Comprar {Weapons.EscopetaCost}", buyStyle))
+            {
+                Sfx.Click();
+                Weapons.TryBuy(WeaponId.Escopeta);
+            }
+            GUI.enabled = true;
+        }
+        else
+        {
+            GUI.Label(new Rect(x + padX, y + height * 0.5f, width * 0.6f, height * 0.45f),
+                "Toca para cambiar", valStyle);
+            var other = Weapons.Equipped == WeaponId.Pistola ? WeaponId.Escopeta : WeaponId.Pistola;
+            if (GUI.Button(bRect, $"Equipar {Weapons.Name(other)}", buyStyle))
+            {
+                Sfx.Click();
+                Weapons.Equipped = other;
+            }
         }
     }
 

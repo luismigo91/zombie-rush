@@ -14,15 +14,15 @@ public class Pickup : MonoBehaviour
 
     /// <summary>Moneda pequeña (la sueltan los enemigos al morir).</summary>
     public static Pickup SpawnCoin(Vector3 pos, int value)
-        => Spawn(pos, value, new Color(1f, 0.85f, 0.15f), new Vector2(0.25f, 0.25f), 3f);
+        => Spawn(pos, value, PixelArt.Coin, new Vector2(0.42f, 0.42f), 3f);
 
     /// <summary>Cofre dorado, vale más monedas (cae periódicamente).</summary>
     public static Pickup SpawnChest(Vector3 pos, int value)
-        => Spawn(pos, value, new Color(1f, 0.72f, 0.08f), new Vector2(0.5f, 0.45f), 2.5f);
+        => Spawn(pos, value, PixelArt.Chest, new Vector2(0.6f, 0.55f), 2.5f);
 
-    public static Pickup Spawn(Vector3 pos, int value, Color color, Vector2 size, float fallSpeed)
+    public static Pickup Spawn(Vector3 pos, int value, Sprite sprite, Vector2 size, float fallSpeed)
     {
-        GameObject go = Prims.Make("Pickup", color, size, pos, sortingOrder: 3);
+        GameObject go = Prims.MakeSprite("Pickup", sprite, Color.white, size, pos, sortingOrder: 3);
 
         var col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;

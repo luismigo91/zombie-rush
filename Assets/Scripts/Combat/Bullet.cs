@@ -18,7 +18,7 @@ public class Bullet : MonoBehaviour
     /// <summary>Crea una bala en pos, viajando hacia dir, con la velocidad y daño dados.</summary>
     public static Bullet Spawn(Vector3 pos, Vector2 dir, float speed, float damage)
     {
-        GameObject go = Prims.Make("Bullet", new Color(1f, 0.9f, 0.2f), new Vector2(0.15f, 0.4f), pos, sortingOrder: 5);
+        GameObject go = Prims.MakeSprite("Bullet", PixelArt.Bullet, Color.white, new Vector2(0.28f, 0.45f), pos, sortingOrder: 5);
 
         var col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;

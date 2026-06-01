@@ -20,6 +20,7 @@ public class Enemy : MonoBehaviour
     public float moveSpeed = 2f;
     public float contactDamage = 15f;
     public int coinValue = 1;
+    public bool isBoss;
 
     Transform target;
     SpriteRenderer sr;
@@ -33,7 +34,7 @@ public class Enemy : MonoBehaviour
     /// <summary>Crea un enemigo con stats explícitos (usado también como fallback).</summary>
     public static Enemy Spawn(Vector3 pos, float health, float speed, float dmg, int coins, Color color, Vector2 size)
     {
-        GameObject go = Prims.Make("Enemy", color, size, pos, sortingOrder: 1);
+        GameObject go = Prims.MakeSprite("Enemy", PixelArt.Zombie, color, size, pos, sortingOrder: 1);
 
         var col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
@@ -45,6 +46,16 @@ public class Enemy : MonoBehaviour
 
         var e = go.AddComponent<Enemy>();
         e.Init(health, speed, dmg, coins);
+        return e;
+    }
+
+    /// <summary>Crea un mini-jefe: un zombie enorme, con mucha vida y recompensa.</summary>
+    public static Enemy SpawnBoss(Vector3 pos, float hp)
+    {
+        var e = Spawn(pos, hp, 1.3f, 40f, 30, new Color(0.45f, 0.70f, 0.20f), new Vector2(1.7f, 1.7f));
+        e.isBoss = true;
+        var srr = e.GetComponent<SpriteRenderer>();
+        if (srr != null) srr.sortingOrder = 2;
         return e;
     }
 

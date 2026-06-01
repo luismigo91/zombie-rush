@@ -58,7 +58,23 @@ public class AutoShooter : MonoBehaviour
     void Shoot(Enemy target)
     {
         Vector2 dir = ((Vector2)(target.transform.position - transform.position)).normalized;
-        Bullet.Spawn(transform.position, dir, bulletSpeed, damage);
+
+        if (Weapons.Equipped == WeaponId.Escopeta)
+        {
+            // 3 perdigones en abanico, con menos daño cada uno.
+            float baseAng = Mathf.Atan2(dir.y, dir.x);
+            for (int k = -1; k <= 1; k++)
+            {
+                float a = baseAng + k * (12f * Mathf.Deg2Rad);
+                var d = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                Bullet.Spawn(transform.position, d, bulletSpeed, damage * 0.6f);
+            }
+        }
+        else
+        {
+            Bullet.Spawn(transform.position, dir, bulletSpeed, damage);
+        }
+
         Sfx.Shoot();
     }
 }

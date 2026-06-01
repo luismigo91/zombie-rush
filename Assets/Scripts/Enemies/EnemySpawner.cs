@@ -16,6 +16,11 @@ public class EnemySpawner : MonoBehaviour
     public float chestInterval = 18f; // cada cuánto cae un cofre
     public int chestValue = 10;
 
+    [Header("Mini-jefe")]
+    public float bossFirstDelay = 35f; // primer jefe
+    public float bossInterval = 55f;   // siguientes jefes
+    float bossTimer;
+
     Camera cam;
     float topY, minX, maxX;
 
@@ -37,6 +42,7 @@ public class EnemySpawner : MonoBehaviour
         waveTimer = 0f;
         spawnTimer = CurrentWave != null ? CurrentWave.spawnInterval : 1.2f;
         chestTimer = chestInterval;
+        bossTimer = bossFirstDelay;
 
         if (GameManager.Instance != null)
             GameManager.Instance.CurrentWave = waveIndex + 1;
@@ -66,6 +72,17 @@ public class EnemySpawner : MonoBehaviour
         AdvanceWave(gm);
         HandleSpawning();
         HandleChests();
+        HandleBoss(gm);
+    }
+
+    void HandleBoss(GameManager gm)
+    {
+        bossTimer -= Time.deltaTime;
+        if (bossTimer > 0f) return;
+
+        bossTimer = bossInterval;
+        float hp = 500f + gm.RunTime * 4f; // crece con el tiempo de la run
+        Enemy.SpawnBoss(new Vector3(0f, topY, 0f), hp);
     }
 
     void AdvanceWave(GameManager gm)

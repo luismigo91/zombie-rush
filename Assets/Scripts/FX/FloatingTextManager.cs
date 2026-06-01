@@ -50,9 +50,11 @@ public class FloatingTextManager : MonoBehaviour
     void OnGUI()
     {
         if (cam == null) cam = Camera.main;
-        if (cam == null || items.Count == 0) return;
+        if (cam == null) return;
 
         float u = Screen.height / 1280f;
+
+        DrawBossBars(u);
 
         for (int i = 0; i < items.Count; i++)
         {
@@ -74,6 +76,32 @@ public class FloatingTextManager : MonoBehaviour
             // GUI usa Y=0 arriba; WorldToScreenPoint usa Y=0 abajo.
             var rect = new Rect(sp.x - w * 0.5f, (Screen.height - sp.y) - h * 0.5f, w, h);
             GUI.Label(rect, it.text, style);
+        }
+    }
+
+    /// <summary>Barra de vida flotante encima de cada mini-jefe.</summary>
+    void DrawBossBars(float u)
+    {
+        var enemies = Enemy.All;
+        for (int i = 0; i < enemies.Count; i++)
+        {
+            var e = enemies[i];
+            if (e == null || !e.isBoss) continue;
+
+            Vector3 sp = cam.WorldToScreenPoint(e.transform.position);
+            if (sp.z < 0f) continue;
+
+            float bw = 190f * u, bh = 16f * u;
+            float gx = sp.x - bw * 0.5f;
+            float gy = (Screen.height - sp.y) - 100f * u;
+
+            GUI.color = new Color(0f, 0f, 0f, 0.65f);
+            GUI.DrawTexture(new Rect(gx, gy, bw, bh), Texture2D.whiteTexture);
+
+            float frac = Mathf.Clamp01(e.Health / Mathf.Max(1f, e.maxHealth));
+            GUI.color = new Color(0.85f, 0.2f, 0.2f);
+            GUI.DrawTexture(new Rect(gx + 2f * u, gy + 2f * u, (bw - 4f * u) * frac, bh - 4f * u), Texture2D.whiteTexture);
+            GUI.color = Color.white;
         }
     }
 }
