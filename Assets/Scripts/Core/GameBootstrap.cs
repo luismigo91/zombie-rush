@@ -59,8 +59,15 @@ public class GameBootstrap : MonoBehaviour
         var col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
 
+        // Aplica las mejoras compradas (PlayerController.Start lee maxHealth).
         var pc = go.AddComponent<PlayerController>();
-        go.AddComponent<AutoShooter>();
+        pc.maxHealth = Upgrades.Value(StatId.MaxHealth);
+        pc.moveMultiplier = Upgrades.Value(StatId.MoveSpeed);
+
+        var shooter = go.AddComponent<AutoShooter>();
+        shooter.damage = Upgrades.Value(StatId.Damage);
+        shooter.fireRate = Upgrades.Value(StatId.FireRate);
+
         return pc;
     }
 }

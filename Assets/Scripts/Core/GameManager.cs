@@ -52,16 +52,23 @@ public class GameManager : MonoBehaviour
     /// <summary>Suma monedas a la run (las llaman los pickups al recogerse).</summary>
     public void AddCoins(int amount) => Coins += amount;
 
-    /// <summary>Pasa la partida a game over (la llama el jugador al morir).</summary>
+    /// <summary>Pasa la partida a game over e ingresa las monedas de la run al banco.</summary>
     public void OnPlayerDied()
     {
         if (State == GameState.GameOver) return;
         State = GameState.GameOver;
+        Economy.Add(Coins); // las monedas de la run pasan al banco persistente
     }
 
-    /// <summary>Reinicia la run recargando la escena activa.</summary>
+    /// <summary>Reinicia la run (vuelve a cargar la escena de juego).</summary>
     public void Restart()
     {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        SceneManager.LoadScene("Game");
+    }
+
+    /// <summary>Vuelve al menú principal (para gastar monedas en mejoras).</summary>
+    public void GoToMenu()
+    {
+        SceneManager.LoadScene("MainMenu");
     }
 }

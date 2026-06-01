@@ -1,50 +1,67 @@
 using UnityEngine;
 
 /// <summary>
-/// HUD mínimo de la fase gris dibujado con IMGUI (OnGUI). Muestra vida, kills
-/// y tiempo, y la pantalla de game over con reinicio.
+/// HUD de la partida dibujado con IMGUI (OnGUI), con tamaños proporcionales a
+/// la altura de pantalla para que se lea bien en móvil. Muestra vida, oleada y
+/// monedas, y la pantalla de game over con botones Reintentar / Menú.
 ///
-/// Es deliberadamente provisional: en la Fase 2/4 se sustituye por un Canvas de
-/// uGUI propio (UIManager) con barras de vida, monedas y oleada.
+/// Provisional: en una fase de pulido se sustituye por un Canvas de uGUI.
 /// </summary>
 public class Hud : MonoBehaviour
 {
-    GUIStyle label, big, small;
-
-    void BuildStyles()
-    {
-        label = new GUIStyle(GUI.skin.label) { fontSize = 20 };
-        label.normal.textColor = Color.white;
-
-        big = new GUIStyle(GUI.skin.label) { fontSize = 40, alignment = TextAnchor.MiddleCenter };
-        big.normal.textColor = Color.white;
-
-        small = new GUIStyle(GUI.skin.label) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
-        small.normal.textColor = Color.white;
-    }
-
     void OnGUI()
     {
         var gm = GameManager.Instance;
         if (gm == null) return;
-        if (label == null) BuildStyles();
 
+        float h = Screen.height, w = Screen.width;
+        float u = h / 1280f; // unidad de escala (referencia ~720x1280)
+
+        var label = Style((int)(34 * u), TextAnchor.UpperLeft);
         float hp = gm.Player != null ? gm.Player.Health : 0f;
-        GUI.Label(new Rect(12, 10, 400, 30), $"Vida: {hp:0}", label);
-        GUI.Label(new Rect(12, 38, 400, 30), $"Oleada: {gm.CurrentWave}", label);
-        GUI.Label(new Rect(12, 66, 400, 30), $"Monedas: {gm.Coins}", label);
-        GUI.Label(new Rect(12, 94, 400, 30), $"Kills: {gm.Kills}", label);
+        float x = 24 * u, lh = 44 * u;
+        GUI.Label(new Rect(x, 16 * u, w, lh), $"Vida: {hp:0}", label);
+        GUI.Label(new Rect(x, 16 * u + lh, w, lh), $"Oleada: {gm.CurrentWave}", label);
+        GUI.Label(new Rect(x, 16 * u + lh * 2, w, lh), $"Monedas: {gm.Coins}", label);
+        GUI.Label(new Rect(x, 16 * u + lh * 3, w, lh), $"Kills: {gm.Kills}", label);
 
         if (gm.State == GameState.GameOver)
-        {
-            float w = Screen.width, h = Screen.height;
-            GUI.Label(new Rect(0, h * 0.32f, w, 60), "GAME OVER", big);
-            GUI.Label(new Rect(0, h * 0.46f, w, 40), $"Oleada {gm.CurrentWave}    ·    {gm.Coins} monedas", small);
-            GUI.Label(new Rect(0, h * 0.53f, w, 40), $"Kills: {gm.Kills}    Tiempo: {gm.RunTime:0}s", small);
-            GUI.Label(new Rect(0, h * 0.62f, w, 40), "Toca o haz clic para reintentar", small);
+            DrawGameOver(gm, w, h, u);
+    }
 
-            if (Input.GetMouseButtonDown(0) || Input.touchCount > 0)
-                gm.Restart();
-        }
+    void DrawGameOver(GameManager gm, float w, float h, float u)
+    {
+        // Velo semitransparente.
+        GUI.color = new Color(0f, 0f, 0f, 0.6f);
+        GUI.DrawTexture(new Rect(0, 0, w, h), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        var big = Style((int)(64 * u), TextAnchor.MiddleCenter);
+        var mid = Style((int)(34 * u), TextAnchor.MiddleCenter);
+        var btn = ButtonStyle((int)(38 * u));
+
+        GUI.Label(new Rect(0, h * 0.24f, w, 90 * u), "GAME OVER", big);
+        GUI.Label(new Rect(0, h * 0.36f, w, 50 * u), $"Oleada {gm.CurrentWave}   ·   {gm.Coins} monedas", mid);
+        GUI.Label(new Rect(0, h * 0.41f, w, 50 * u), $"Kills: {gm.Kills}    Tiempo: {gm.RunTime:0}s", mid);
+        GUI.Label(new Rect(0, h * 0.47f, w, 50 * u), $"Banco total: {Economy.Coins} monedas", mid);
+
+        float bw = w * 0.62f, bh = 110 * u, bx = (w - bw) * 0.5f;
+        if (GUI.Button(new Rect(bx, h * 0.58f, bw, bh), "REINTENTAR", btn))
+            gm.Restart();
+        if (GUI.Button(new Rect(bx, h * 0.58f + bh + 20 * u, bw, bh), "MENÚ / MEJORAS", btn))
+            gm.GoToMenu();
+    }
+
+    static GUIStyle Style(int fontSize, TextAnchor anchor)
+    {
+        var s = new GUIStyle(GUI.skin.label) { fontSize = fontSize, alignment = anchor };
+        s.normal.textColor = Color.white;
+        return s;
+    }
+
+    static GUIStyle ButtonStyle(int fontSize)
+    {
+        var s = new GUIStyle(GUI.skin.button) { fontSize = fontSize };
+        return s;
     }
 }

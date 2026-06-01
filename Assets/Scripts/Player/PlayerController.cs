@@ -14,6 +14,9 @@ public class PlayerController : MonoBehaviour
     public float maxHealth = 100f;
     public float Health { get; private set; }
 
+    [Header("Movimiento")]
+    public float moveMultiplier = 1f; // sensibilidad del arrastre (mejora Velocidad)
+
     Camera cam;
     float minX, maxX;       // límites de movimiento en X (mundo)
     bool dragging;
@@ -60,8 +63,9 @@ public class PlayerController : MonoBehaviour
                 lastPointerWorldX = worldX;
             }
 
-            // Movimiento relativo: el delta del dedo se traslada al jugador.
-            float delta = worldX - lastPointerWorldX;
+            // Movimiento relativo: el delta del dedo se traslada al jugador
+            // (escalado por la mejora de Velocidad).
+            float delta = (worldX - lastPointerWorldX) * moveMultiplier;
             lastPointerWorldX = worldX;
 
             Vector3 p = transform.position;

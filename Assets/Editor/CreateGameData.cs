@@ -31,6 +31,11 @@ public static class CreateGameData
         MakeWave("Wave_03", "Oleada 3", 30f, 0.85f, new[] { (normal, 3), (runner, 3), (tank, 1) });
         MakeWave("Wave_04", "Oleada 4+", 9999f, 0.60f, new[] { (normal, 2), (runner, 3), (tank, 2) });
 
+        // --- Mejoras (desde la tabla Defaults, fuente única de verdad) ---
+        EnsureFolder("Assets/Resources/Upgrades");
+        foreach (var d in Upgrades.Defaults)
+            MakeUpgrade(d);
+
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("Zombie Dash: datos de juego creados/actualizados en Assets/Resources.");
@@ -61,6 +66,25 @@ public static class CreateGameData
         if (isNew) AssetDatabase.CreateAsset(data, path);
         else EditorUtility.SetDirty(data);
         return data;
+    }
+
+    static void MakeUpgrade(UpgradeDef d)
+    {
+        string path = $"Assets/Resources/Upgrades/{d.stat}.asset";
+        var data = AssetDatabase.LoadAssetAtPath<UpgradeData>(path);
+        bool isNew = data == null;
+        if (isNew) data = ScriptableObject.CreateInstance<UpgradeData>();
+
+        data.stat = d.stat;
+        data.displayName = d.name;
+        data.baseValue = d.baseValue;
+        data.perLevel = d.perLevel;
+        data.baseCost = d.baseCost;
+        data.costGrowth = d.costGrowth;
+        data.maxLevel = d.maxLevel;
+
+        if (isNew) AssetDatabase.CreateAsset(data, path);
+        else EditorUtility.SetDirty(data);
     }
 
     static WaveData MakeWave(string file, string label, float duration, float interval, (EnemyData enemy, int weight)[] comp)

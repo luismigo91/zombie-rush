@@ -13,7 +13,8 @@ using UnityEngine;
 /// </summary>
 public static class ZombieDashSetup
 {
-    const string ScenePath = "Assets/Scenes/Game.unity";
+    const string GameScenePath = "Assets/Scenes/Game.unity";
+    const string MenuScenePath = "Assets/Scenes/MainMenu.unity";
 
     [MenuItem("Zombie Dash/Crear escena de juego")]
     public static void CreateGameScene()
@@ -23,15 +24,42 @@ public static class ZombieDashSetup
         var go = new GameObject("Bootstrap");
         go.AddComponent<GameBootstrap>();
 
+        EnsureScenesFolder();
+        EditorSceneManager.SaveScene(scene, GameScenePath);
+        SetBuildOrder();
+
+        Debug.Log("Zombie Dash: escena de juego creada en " + GameScenePath);
+    }
+
+    [MenuItem("Zombie Dash/Crear escena de menú")]
+    public static void CreateMenuScene()
+    {
+        var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+        var go = new GameObject("MenuBootstrap");
+        go.AddComponent<MenuBootstrap>();
+
+        EnsureScenesFolder();
+        EditorSceneManager.SaveScene(scene, MenuScenePath);
+        SetBuildOrder();
+
+        Debug.Log("Zombie Dash: escena de menú creada en " + MenuScenePath);
+    }
+
+    static void EnsureScenesFolder()
+    {
         if (!AssetDatabase.IsValidFolder("Assets/Scenes"))
             AssetDatabase.CreateFolder("Assets", "Scenes");
+    }
 
-        EditorSceneManager.SaveScene(scene, ScenePath);
-
-        // Deja la escena como única en Build Settings (índice 0).
-        EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
-
-        Debug.Log("Zombie Dash: escena creada en " + ScenePath);
+    /// <summary>Orden de build: el menú primero (índice 0), luego el juego.</summary>
+    static void SetBuildOrder()
+    {
+        EditorBuildSettings.scenes = new[]
+        {
+            new EditorBuildSettingsScene(MenuScenePath, true),
+            new EditorBuildSettingsScene(GameScenePath, true),
+        };
     }
 }
 #endif
