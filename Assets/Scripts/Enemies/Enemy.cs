@@ -22,6 +22,9 @@ public class Enemy : MonoBehaviour
     public int coinValue = 1;
 
     Transform target;
+    SpriteRenderer sr;
+    Color baseColor;
+    float flashT; // temporizador del destello blanco al recibir daño
 
     /// <summary>Crea un enemigo a partir de su EnemyData.</summary>
     public static Enemy Spawn(EnemyData data, Vector3 pos)
@@ -57,7 +60,12 @@ public class Enemy : MonoBehaviour
     void OnEnable() => All.Add(this);
     void OnDisable() => All.Remove(this);
 
-    void Start() => TryAcquireTarget();
+    void Start()
+    {
+        sr = GetComponent<SpriteRenderer>();
+        if (sr != null) baseColor = sr.color;
+        TryAcquireTarget();
+    }
 
     void TryAcquireTarget()
     {
@@ -68,6 +76,13 @@ public class Enemy : MonoBehaviour
 
     void Update()
     {
+        // El destello se restaura siempre, aunque la partida esté en game over.
+        if (flashT > 0f)
+        {
+            flashT -= Time.deltaTime;
+            if (flashT <= 0f && sr != null) sr.color = baseColor;
+        }
+
         var gm = GameManager.Instance;
         if (gm == null || gm.State != GameState.Playing) return;
 
@@ -82,7 +97,20 @@ public class Enemy : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
+        if (sr == null)
+        {
+            sr = GetComponent<SpriteRenderer>();
+            if (sr != null) baseColor = sr.color;
+        }
+
         Health -= damage;
+
+        // Feedback de impacto: destello blanco, número de daño y chispa.
+        flashT = 0.07f;
+        if (sr != null) sr.color = Color.white;
+        FloatingTextManager.Spawn(transform.position, Mathf.RoundToInt(damage).ToString(), new Color(1f, 0.95f, 0.5f));
+        HitEffect.Burst(transform.position, new Color(1f, 0.9f, 0.4f), 4, 4f, 0.12f, 0.22f);
+
         if (Health <= 0f)
             Die();
     }
@@ -91,6 +119,10 @@ public class Enemy : MonoBehaviour
     {
         if (GameManager.Instance != null)
             GameManager.Instance.AddKill();
+
+        // Estallido en el color del enemigo + sacudida de cámara.
+        HitEffect.Burst(transform.position, baseColor, 10, 6f, 0.16f, 0.35f);
+        CameraShake.Shake(0.12f, 0.18f);
 
         Pickup.SpawnCoin(transform.position, coinValue);
         Destroy(gameObject);

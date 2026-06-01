@@ -104,6 +104,12 @@ public class PlayerController : MonoBehaviour
         if (GameManager.Instance.State != GameState.Playing) return;
 
         Health -= damage;
+
+        // Feedback de golpe recibido: sacudida fuerte, flash rojo y chispa.
+        CameraShake.Shake(0.3f, 0.25f);
+        Hud.FlashDamage();
+        HitEffect.Burst(transform.position, new Color(1f, 0.3f, 0.3f), 6, 5f, 0.16f, 0.3f);
+
         if (Health <= 0f)
         {
             Health = 0f;

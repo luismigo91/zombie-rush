@@ -29,6 +29,7 @@ public class GameBootstrap : MonoBehaviour
 
         new GameObject("EnemySpawner").AddComponent<EnemySpawner>();
         new GameObject("HUD").AddComponent<Hud>();
+        new GameObject("FloatingText").AddComponent<FloatingTextManager>();
     }
 
     void SetupCamera()
@@ -48,6 +49,9 @@ public class GameBootstrap : MonoBehaviour
         cam.transform.position = new Vector3(0f, 0f, -10f);
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = new Color(0.10f, 0.10f, 0.13f);
+
+        if (cam.GetComponent<CameraShake>() == null)
+            cam.gameObject.AddComponent<CameraShake>();
     }
 
     PlayerController CreatePlayer()

@@ -9,12 +9,30 @@ using UnityEngine;
 /// </summary>
 public class Hud : MonoBehaviour
 {
+    static float damageFlash;
+
+    /// <summary>Dispara el destello rojo de pantalla (al recibir daño el jugador).</summary>
+    public static void FlashDamage() => damageFlash = 0.25f;
+
+    void Update()
+    {
+        if (damageFlash > 0f) damageFlash -= Time.deltaTime;
+    }
+
     void OnGUI()
     {
         var gm = GameManager.Instance;
         if (gm == null) return;
 
         float h = Screen.height, w = Screen.width;
+
+        // Destello rojo al recibir daño.
+        if (damageFlash > 0f)
+        {
+            GUI.color = new Color(1f, 0f, 0f, 0.4f * Mathf.Clamp01(damageFlash / 0.25f));
+            GUI.DrawTexture(new Rect(0, 0, w, h), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+        }
         float u = h / 1280f; // unidad de escala (referencia ~720x1280)
 
         var label = Style((int)(34 * u), TextAnchor.UpperLeft);
