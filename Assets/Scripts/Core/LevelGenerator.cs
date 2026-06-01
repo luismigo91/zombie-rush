@@ -29,12 +29,13 @@ public static class LevelGenerator
         unchecked { seed = GlobalSeed * 1000003 + n * 9176; }
         var rng = new System.Random(seed);
 
-        def.duration = Mathf.Min(50f, 34f + act * 1.8f);
-        def.scrollSpeed = 2.2f + act * 0.12f;
-        def.bossHealth = isBoss ? 320f + n * 45f : 0f;
+        def.duration = Mathf.Min(55f, 32f + n * 0.6f);
+        def.scrollSpeed = 2.2f + n * 0.02f;
+        def.bossHealth = isBoss ? 300f + n * 50f : 0f;
 
-        float zHp = 16f + n * 2.4f;       // vida de zombie (amenaza D)
-        float zSpd = 1.55f + act * 0.10f;
+        // La amenaza escala con el NIVEL (n), no por acto → reto creciente nivel a nivel.
+        float zHp = 14f + n * 3f;         // vida de zombie ramping
+        float zSpd = 1.5f + n * 0.035f;   // velocidad ramping (cap natural)
 
         // Mecánicas desbloqueadas progresivamente (tutorial implícito, acto 1).
         bool gatesPair = n >= 2;
@@ -42,7 +43,7 @@ public static class LevelGenerator
         bool barriers = n >= 4;
         bool weaponGates = n >= 4;
 
-        float beat = Mathf.Max(1.7f, 2.9f - act * 0.10f);
+        float beat = Mathf.Max(1.35f, 2.8f - n * 0.045f); // hordas más frecuentes según sube el nivel
         float t = 2f;
         bool reward = false;
 
@@ -76,7 +77,7 @@ public static class LevelGenerator
                 else
                 {
                     ev.type = EncounterType.Horde;
-                    ev.hordeCount = 3 + act + rng.Next(0, 3 + act);
+                    ev.hordeCount = 2 + Mathf.FloorToInt(n * 0.5f) + rng.Next(0, 3 + act);
                     ev.zombieHealth = zHp;
                     ev.zombieSpeed = zSpd;
                 }
