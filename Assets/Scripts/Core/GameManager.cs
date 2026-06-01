@@ -35,6 +35,10 @@ public class GameManager : MonoBehaviour
     public int Level { get; set; } = 1;       // nivel actual (1..100)
     public float LevelProgress { get; set; }  // 0..1 dentro del nivel (lo fija LevelRunner)
 
+    /// <summary>Tier del arma global durante el nivel (sube con los gates de arma).</summary>
+    public int WeaponTier { get; set; }
+    public void RaiseWeaponTier() => WeaponTier++;
+
     void Awake()
     {
         // Guard de singleton. Tras recargar la escena, la Instance anterior

@@ -53,10 +53,11 @@ public class Bullet : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        var enemy = other.GetComponent<Enemy>();
-        if (enemy != null)
+        // Daña a cualquier "disparable": zombie, jaula o barrera.
+        var hit = other.GetComponent<IShootable>();
+        if (hit != null)
         {
-            enemy.TakeDamage(damage);
+            hit.TakeHit(damage);
             Sfx.Hit();
             Destroy(gameObject);
         }

@@ -11,7 +11,7 @@ using UnityEngine;
 ///
 /// Mantiene Enemy.All para que AutoShooter encuentre al más cercano sin búsquedas caras.
 /// </summary>
-public class Enemy : MonoBehaviour
+public class Enemy : MonoBehaviour, IShootable
 {
     public static readonly List<Enemy> All = new List<Enemy>();
 
@@ -120,6 +120,9 @@ public class Enemy : MonoBehaviour
             transform.position += (Vector3)(dir * moveSpeed * Time.deltaTime);
         }
     }
+
+    /// <summary>Implementación de IShootable: las balas llaman aquí.</summary>
+    public void TakeHit(float damage) => TakeDamage(damage);
 
     public void TakeDamage(float damage)
     {

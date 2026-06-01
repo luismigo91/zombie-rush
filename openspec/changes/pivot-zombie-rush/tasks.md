@@ -18,11 +18,11 @@
 
 ## 3. Elementos de recorrido (capacidad `course-elements`)
 
-- [ ] 3.1 Gates en carriles con efectos: suma (+8), multiplicación (×2) y trampa (−5)
-- [ ] 3.2 Elección por alineación: el escuadrón cruza el gate del carril con el que está alineado
-- [ ] 3.3 Jaulas de supervivientes: liberar → suma unidades al recuento
-- [ ] 3.4 Barreras destructibles con vida que bloquean hasta ser derribadas a tiros
-- [ ] 3.5 Gate de arma: sube el tier del arma global durante el nivel (eje de calidad)
+- [x] 3.1 Gates con efectos: suma (+N), multiplicación (×N) y trampa (−N) — `Gate`/`GateEffect`
+- [x] 3.2 Elección por alineación: el gate aplica solo si el escuadrón está alineado con su carril
+- [x] 3.3 Jaulas de supervivientes (`Cage`): derribar a tiros → suma unidades
+- [x] 3.4 Barreras destructibles (`Barrier`) con vida; si llegan intactas arrasan parte del frente
+- [x] 3.5 Gate de arma: sube el tier del arma global (`GameManager.RaiseWeaponTier`)
 
 ## 4. Generación procedural de niveles (capacidad `level-flow`)
 

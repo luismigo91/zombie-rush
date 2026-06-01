@@ -86,6 +86,6 @@ public class LevelRunner : MonoBehaviour
         // Alterna el gate a izquierda/derecha para forzar a moverse a por él.
         float x = gateSide > 0 ? maxX * 0.5f : minX * 0.5f;
         gateSide = -gateSide;
-        Gate.Spawn(new Vector3(x, topY, 0f), gateAmount, gateWidth, scrollSpeed);
+        Gate.Spawn(new Vector3(x, topY, 0f), GateEffect.Add, gateAmount, gateWidth, scrollSpeed);
     }
 }

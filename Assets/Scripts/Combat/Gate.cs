@@ -1,35 +1,46 @@
 using UnityEngine;
 
+/// <summary>Tipo de efecto de un gate al cruzarlo.</summary>
+public enum GateEffect { Add, Mult, Trap, Weapon }
+
 /// <summary>
-/// Gate del recorrido (versión mínima del vertical slice): una barra que baja con
-/// el scroll y, al cruzar la línea del escuadrón, suma soldados si el escuadrón
-/// está alineado con ella (si no, se pierde). Demuestra el crecimiento intra-run
-/// y la decisión de "alinearse con el gate bueno".
+/// Gate del recorrido: una barra que baja con el scroll y, al cruzar la línea del
+/// escuadrón, aplica su efecto SI el escuadrón está alineado con su carril (si no,
+/// se pierde). Los gates se colocan en carriles (el generador suele soltar dos a
+/// la vez) para que el jugador elija con cuál alinearse.
 ///
-/// En la Fase 3 se ampliará a gates en carriles con efectos ×/+/trampa y al gate
-/// de arma; aquí solo hay gate aditivo de un carril para validar el loop.
+/// Efectos: suma (+N), multiplicación (×N), trampa (−N) y arma (sube el tier del
+/// arma global). Suma/Mult/Arma = crecimiento; Trap = castigo.
 /// </summary>
 public class Gate : MonoBehaviour
 {
-    int amount;
+    GateEffect effect;
+    float value;
     float fallSpeed;
     float halfWidth;
     float prevY;
     bool resolved;
 
-    public static Gate Spawn(Vector3 pos, int amount, float width, float fallSpeed)
+    public static Gate Spawn(Vector3 pos, GateEffect effect, float value, float width, float fallSpeed)
     {
-        // Barra verde semitransparente como placeholder.
-        GameObject go = Prims.Make("Gate", new Color(0.3f, 0.85f, 0.4f, 0.55f),
-            new Vector2(width, 0.35f), pos, sortingOrder: 0);
+        GameObject go = Prims.Make("Gate", ColorFor(effect), new Vector2(width, 0.35f), pos, sortingOrder: 0);
 
         var g = go.AddComponent<Gate>();
-        g.amount = amount;
+        g.effect = effect;
+        g.value = value;
         g.fallSpeed = fallSpeed;
         g.halfWidth = width * 0.5f;
         g.prevY = pos.y;
         return g;
     }
+
+    static Color ColorFor(GateEffect e) => e switch
+    {
+        GateEffect.Add    => new Color(0.30f, 0.85f, 0.40f, 0.55f), // verde
+        GateEffect.Mult   => new Color(0.35f, 0.65f, 1f, 0.60f),    // azul
+        GateEffect.Weapon => new Color(1f, 0.75f, 0.20f, 0.60f),    // ámbar
+        _                 => new Color(0.85f, 0.25f, 0.25f, 0.55f), // rojo (trampa)
+    };
 
     void Update()
     {
@@ -43,17 +54,11 @@ public class Gate : MonoBehaviour
         if (!resolved && squad != null)
         {
             float lineY = squad.transform.position.y;
-            // Cruza la línea del escuadrón este frame.
             if (prevY > lineY && y <= lineY)
             {
                 resolved = true;
                 bool aligned = Mathf.Abs(squad.transform.position.x - transform.position.x) <= halfWidth + squad.Radius;
-                if (aligned)
-                {
-                    squad.Add(amount);
-                    FloatingTextManager.Spawn(transform.position, "+" + amount, new Color(0.5f, 1f, 0.6f));
-                    Sfx.Coin();
-                }
+                if (aligned) Apply(squad, gm);
                 Destroy(gameObject);
                 return;
             }
@@ -63,4 +68,32 @@ public class Gate : MonoBehaviour
         if (y < -(Camera.main != null ? Camera.main.orthographicSize : 6f) - 1f)
             Destroy(gameObject);
     }
+
+    void Apply(Squad squad, GameManager gm)
+    {
+        switch (effect)
+        {
+            case GateEffect.Add:
+                squad.Add(Mathf.RoundToInt(value));
+                Flash("+" + Mathf.RoundToInt(value), new Color(0.5f, 1f, 0.6f));
+                break;
+            case GateEffect.Mult:
+                int extra = Mathf.RoundToInt(squad.Count * (value - 1f));
+                squad.Add(Mathf.Max(0, extra));
+                Flash("×" + value.ToString("0.#"), new Color(0.6f, 0.85f, 1f));
+                break;
+            case GateEffect.Trap:
+                squad.RemoveFront(Mathf.RoundToInt(value));
+                Flash("−" + Mathf.RoundToInt(value), new Color(1f, 0.5f, 0.5f));
+                break;
+            case GateEffect.Weapon:
+                gm.RaiseWeaponTier();
+                Flash("ARMA+", new Color(1f, 0.85f, 0.4f));
+                break;
+        }
+        Sfx.Coin();
+    }
+
+    void Flash(string text, Color color)
+        => FloatingTextManager.Spawn(transform.position, text, color);
 }
