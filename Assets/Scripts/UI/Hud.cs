@@ -44,9 +44,9 @@ public class Hud : MonoBehaviour
         DrawProgressBar(gm, w, u);
 
         if (gm.State == GameState.GameOver)
-            DrawEndScreen(gm, w, h, u, "DERROTA", new Color(1f, 0.4f, 0.4f));
+            DrawEndScreen(gm, w, h, u, "DERROTA", new Color(1f, 0.4f, 0.4f), "REINTENTAR");
         else if (gm.State == GameState.Won)
-            DrawEndScreen(gm, w, h, u, "¡NIVEL SUPERADO!", new Color(0.5f, 1f, 0.6f));
+            DrawEndScreen(gm, w, h, u, "¡NIVEL SUPERADO!", new Color(0.5f, 1f, 0.6f), "SIGUIENTE NIVEL");
     }
 
     void DrawProgressBar(GameManager gm, float w, float u)
@@ -61,7 +61,7 @@ public class Hud : MonoBehaviour
         GUI.color = Color.white;
     }
 
-    void DrawEndScreen(GameManager gm, float w, float h, float u, string title, Color titleColor)
+    void DrawEndScreen(GameManager gm, float w, float h, float u, string title, Color titleColor, string continueLabel)
     {
         GUI.color = new Color(0f, 0f, 0f, 0.6f);
         GUI.DrawTexture(new Rect(0, 0, w, h), Texture2D.whiteTexture);
@@ -74,7 +74,7 @@ public class Hud : MonoBehaviour
         GUI.Label(new Rect(0, h * 0.28f, w, 90 * u), title, big);
 
         float bw = w * 0.62f, bh = 110 * u, bx = (w - bw) * 0.5f;
-        if (GUI.Button(new Rect(bx, h * 0.50f, bw, bh), "REINTENTAR", btn))
+        if (GUI.Button(new Rect(bx, h * 0.50f, bw, bh), continueLabel, btn))
         {
             Sfx.Click();
             gm.Restart();

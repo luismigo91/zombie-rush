@@ -26,11 +26,11 @@
 
 ## 4. Generación procedural de niveles (capacidad `level-flow`)
 
-- [ ] 4.1 Modelo `LevelDefinition` (encuentros por distancia) + tabla de ~8-12 *trozos* de encuentro reutilizables
-- [ ] 4.2 `GenParams` (ScriptableObject): presupuestos `D(n)` (amenaza) y `G(n)` (crecimiento) por nivel
-- [ ] 4.3 Generador híbrido determinista: encadena trozos escalados por `D/G` e intercala amenaza/recompensa en onda; semilla GLOBAL constante (100 niveles fijos), `seed = f(global, n)`, nunca `Random.value`
-- [ ] 4.4 Macro-estructura por actos de 10: acto 1 introduce mecánicas de una en una (tutorial implícito); nivel-jefe cada 10
-- [ ] 4.5 Verificar determinismo (mismo n → misma disposición) y que cada nivel sea superable desde el punto de partida MÍNIMO
+- [x] 4.1 Modelo `LevelDefinition` + `LevelEvent` (encuentros por tiempo: horda/gates/jaula/barrera)
+- [x] 4.2 Presupuestos `D(n)`/`G(n)` embebidos como constantes en `LevelGenerator` (en vez de SO, para no depender del editor; migrable a `GenParams` SO)
+- [x] 4.3 `LevelGenerator` híbrido determinista: beats amenaza/recompensa en onda; semilla GLOBAL constante (100 fijos), `seed=f(global,n)` con `System.Random`
+- [x] 4.4 Actos de 10: mecánicas introducidas progresivamente (tutorial implícito); jefe cada 10; `Campaign` persiste el nivel
+- [ ] 4.5 Verificar (en Unity) determinismo y que cada nivel sea superable desde el punto de partida MÍNIMO ← requiere playtest
 
 ## 5. Meta-tienda reorientada (capacidad `meta-shop`)
 

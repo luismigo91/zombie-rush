@@ -1,49 +1,34 @@
 using UnityEngine;
 
 /// <summary>
-/// Conductor del nivel (vertical slice): hace "scroll" del recorrido haciendo
-/// caer zombies desde arriba a un ritmo creciente y soltando gates aditivos en
-/// posiciones alternas, durante una duración fija. Al terminar la duración sin
-/// quedarte sin escuadrón, el nivel se gana.
-///
-/// Es un nivel HARDCODEADO para validar el loop. En la Fase 4 lo sustituirá el
-/// generador procedural (LevelDefinition + GenParams) con los 100 niveles.
+/// Conductor del nivel (Zombie Rush): genera la LevelDefinition del nivel actual
+/// y la "reproduce" con el scroll, instanciando cada encuentro (hordas, gates en
+/// carriles, jaulas, barreras) en su instante. Al terminar el recorrido, si es
+/// nivel-jefe spawnea el jefe y la victoria llega al derribarlo; si no, victoria
+/// al completar la duración.
 /// </summary>
 public class LevelRunner : MonoBehaviour
 {
-    [Header("Duración del nivel (slice)")]
-    public float levelDuration = 40f;
-
-    [Header("Zombies")]
-    public float spawnIntervalStart = 1.1f;
-    public float spawnIntervalEnd = 0.45f;  // al final del nivel, más rápido
-    public float zombieHealth = 24f;
-    public float zombieSpeed = 1.8f;
-
-    [Header("Gates")]
-    public float gateInterval = 6f;
-    public int gateAmount = 6;
-    public float gateWidth = 1.6f;
-    public float scrollSpeed = 2.2f;   // velocidad de caída de gates
-
+    LevelDefinition def;
     Camera cam;
-    float topY, minX, maxX;
+    float topY, minX, maxX, laneOffset;
     float t;
-    float spawnTimer;
-    float gateTimer;
-    int gateSide = 1;
+    int nextEvent;
+    bool bossSpawned;
+    Enemy boss;
 
     void Start()
     {
         cam = Camera.main;
-        float halfHeight = cam.orthographicSize;
-        float halfWidth = halfHeight * cam.aspect;
-        topY = halfHeight + 0.6f;
-        minX = -halfWidth + 0.6f;
-        maxX = halfWidth - 0.6f;
+        float halfH = cam.orthographicSize;
+        float halfW = halfH * cam.aspect;
+        topY = halfH + 0.8f;
+        minX = -halfW + 0.6f;
+        maxX = halfW - 0.6f;
+        laneOffset = halfW * 0.45f;
 
-        spawnTimer = spawnIntervalStart;
-        gateTimer = gateInterval;
+        var gm = GameManager.Instance;
+        def = LevelGenerator.Generate(gm != null ? gm.Level : 1);
     }
 
     void Update()
@@ -52,40 +37,62 @@ public class LevelRunner : MonoBehaviour
         if (gm == null || gm.State != GameState.Playing) return;
 
         t += Time.deltaTime;
-        gm.LevelProgress = Mathf.Clamp01(t / levelDuration);
+        gm.LevelProgress = Mathf.Clamp01(t / def.duration);
 
-        if (t >= levelDuration)
+        while (nextEvent < def.events.Count && def.events[nextEvent].time <= t)
         {
-            gm.OnLevelComplete();
-            return;
+            Play(def.events[nextEvent]);
+            nextEvent++;
         }
 
-        HandleZombies();
-        HandleGates();
+        if (t >= def.duration)
+        {
+            if (def.bossHealth > 0f)
+            {
+                if (!bossSpawned)
+                {
+                    bossSpawned = true;
+                    boss = Enemy.SpawnBoss(new Vector3(0f, topY, 0f), def.bossHealth);
+                }
+                else if (boss == null) // jefe derribado
+                {
+                    gm.OnLevelComplete();
+                }
+            }
+            else
+            {
+                gm.OnLevelComplete();
+            }
+        }
     }
 
-    void HandleZombies()
+    void Play(LevelEvent ev)
     {
-        spawnTimer -= Time.deltaTime;
-        if (spawnTimer > 0f) return;
+        switch (ev.type)
+        {
+            case EncounterType.Horde:
+                for (int i = 0; i < ev.hordeCount; i++)
+                {
+                    float px = Random.Range(minX, maxX);
+                    Enemy.Spawn(new Vector3(px, topY + i * 0.7f, 0f),
+                        ev.zombieHealth, ev.zombieSpeed, 1f, 0,
+                        new Color(0.85f, 0.25f, 0.25f), new Vector2(0.55f, 0.55f));
+                }
+                break;
 
-        float px = Random.Range(minX, maxX);
-        Enemy.Spawn(new Vector3(px, topY, 0f), zombieHealth, zombieSpeed, 1f, 0,
-            new Color(0.85f, 0.25f, 0.25f), new Vector2(0.55f, 0.55f));
+            case EncounterType.GatePair:
+                float gw = laneOffset * 0.9f;
+                Gate.Spawn(new Vector3(-laneOffset, topY, 0f), ev.leftEffect, ev.leftValue, gw, def.scrollSpeed);
+                Gate.Spawn(new Vector3(+laneOffset, topY, 0f), ev.rightEffect, ev.rightValue, gw, def.scrollSpeed);
+                break;
 
-        float k = Mathf.Clamp01(t / levelDuration);
-        spawnTimer = Mathf.Lerp(spawnIntervalStart, spawnIntervalEnd, k);
-    }
+            case EncounterType.Cage:
+                Cage.Spawn(new Vector3(Random.Range(minX, maxX), topY, 0f), ev.survivors, ev.cageHealth, def.scrollSpeed);
+                break;
 
-    void HandleGates()
-    {
-        gateTimer -= Time.deltaTime;
-        if (gateTimer > 0f) return;
-        gateTimer = gateInterval;
-
-        // Alterna el gate a izquierda/derecha para forzar a moverse a por él.
-        float x = gateSide > 0 ? maxX * 0.5f : minX * 0.5f;
-        gateSide = -gateSide;
-        Gate.Spawn(new Vector3(x, topY, 0f), GateEffect.Add, gateAmount, gateWidth, scrollSpeed);
+            case EncounterType.Barrier:
+                Barrier.Spawn(new Vector3(0f, topY, 0f), ev.barrierHealth, ev.barrierWidth, def.scrollSpeed);
+                break;
+        }
     }
 }

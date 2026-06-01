@@ -57,7 +57,9 @@ public class Gate : MonoBehaviour
             if (prevY > lineY && y <= lineY)
             {
                 resolved = true;
-                bool aligned = Mathf.Abs(squad.transform.position.x - transform.position.x) <= halfWidth + squad.Radius;
+                // Alineación por CENTRO (no por ancho): así, con dos gates en
+                // carriles, eliges uno aunque el blob sea ancho.
+                bool aligned = Mathf.Abs(squad.transform.position.x - transform.position.x) <= halfWidth + 0.25f;
                 if (aligned) Apply(squad, gm);
                 Destroy(gameObject);
                 return;
