@@ -50,7 +50,7 @@
 - [x] 7.2 `README.md` y `CLAUDE.md` reescritos para Zombie Rush
 - [x] 7.3 Nombres visibles: `MenuUI` ("ZOMBIE RUSH") y menús de editor (`Zombie Rush → ...`)
 - [x] 7.4 `BuildAndroid`: ambas escenas en el APK (menú+juego), salida `ZombieRush.apk`; `openspec/config.yaml` actualizado
-- [ ] 7.5 Memoria del proyecto actualizada; **Notion pendiente** (servicio externo, requiere tu OK)
+- [x] 7.5 Memoria del proyecto y **Notion** actualizados (título → Zombie Rush + aviso de pivote; GDD/Plan/Roadmap quedan como histórico)
 
 ## 8. Cierre del cambio
 
