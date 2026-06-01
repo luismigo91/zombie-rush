@@ -54,5 +54,5 @@
 
 ## 8. Cierre del cambio
 
-- [ ] 8.1 Compilar el APK del pivote y probarlo en dispositivo real
+- [x] 8.1 APK del pivote construido (`Builds/ZombieRush.apk`, BUILD_OK) e instalado en el dispositivo. Jugarlo/validar = hito 2.9
 - [ ] 8.2 Commit por hito y, al terminar, archivar el cambio (`/opsx:archive`)
