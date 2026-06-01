@@ -2,8 +2,8 @@ schema: spec-driven
 
 # Project context — se muestra a la IA al crear artefactos (propuestas, specs, tareas).
 context: |
-  Proyecto: Zombie Dash — juego móvil arcade 2D "dodge & shoot" en Unity.
-  Documentación de diseño/roadmap en Notion ("Zombie Dash — MVP", fases F0–F6).
+  Proyecto: Zombie Rush (antes Zombie Dash) — shooter de multitud con gates en Unity 2D (runner vertical, móvil).
+  Documentación de diseño/roadmap en Notion; pivote de género capturado en openspec/changes/pivot-zombie-rush.
 
   Stack:
     - Unity 6000.4.9f1, C#, plantilla 2D, Built-in Render Pipeline.

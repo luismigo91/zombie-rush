@@ -16,7 +16,7 @@ public static class ZombieDashSetup
     const string GameScenePath = "Assets/Scenes/Game.unity";
     const string MenuScenePath = "Assets/Scenes/MainMenu.unity";
 
-    [MenuItem("Zombie Dash/Crear escena de juego")]
+    [MenuItem("Zombie Rush/Crear escena de juego")]
     public static void CreateGameScene()
     {
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -31,7 +31,7 @@ public static class ZombieDashSetup
         Debug.Log("Zombie Dash: escena de juego creada en " + GameScenePath);
     }
 
-    [MenuItem("Zombie Dash/Crear escena de menú")]
+    [MenuItem("Zombie Rush/Crear escena de menú")]
     public static void CreateMenuScene()
     {
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);

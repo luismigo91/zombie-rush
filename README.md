@@ -1,136 +1,105 @@
-# 🧟 Zombie Dash
+# 🧟 Zombie Rush
 
-Juego móvil arcade *dodge & shoot* en Unity 2D. El jugador se mueve lateralmente
-para esquivar hordas de zombies mientras dispara en automático, y mejora su
-arsenal entre partidas. Sesiones de 1–3 minutos, pensado para móvil vertical.
+Juego móvil arcade *shooter de multitud con gates* en Unity 2D (al estilo de
+*Last Z*). Controlas un **escuadrón** que se mueve lateralmente y dispara recto
+hacia arriba; por el recorrido **creces** cruzando gates y rescatando
+supervivientes, mientras una horda de zombies te erosiona. Runner vertical, un
+dedo, sesiones de 1–3 minutos, móvil portrait.
 
-> Documentación completa (GDD, plan técnico, roadmap) en Notion → "Zombie Dash".
+> Antes se llamaba *Zombie Dash* (un "dodge & shoot" de héroe único). El juego
+> pivotó de género; el diseño completo está en `openspec/changes/pivot-zombie-rush/`.
+> El juego anterior queda preservado en el tag de git **`pre-zombie-rush`**.
 
-## Estado actual: Fases 0–4 completas (build jugable de extremo a extremo)
+## Estado actual: pivote implementado (sin validar aún)
 
-El juego está **mecánicamente completo**: tiene menú, tienda, progresión, varios
-tipos de enemigo, dos armas, mini-jefes, feedback y sonido. Lo que todavía es
-*placeholder* es el **vestido**: todo el arte, el audio y la UI están generados
-por código (no hay assets binarios). Es bonito y honesto para validar el juego,
-pero no es el aspecto final.
+Implementadas por código las fases 1–7 de la propuesta `pivot-zombie-rush`:
 
-Implementado hasta ahora:
+- ✅ **Escuadrón-multitud**: formación disco (ancho ∝ √N), movimiento en X, disparo
+  recto por *streams* con daño por densidad.
+- ✅ **Recorrido con scroll**: hordas que bajan, **gates en carriles** (+ / × /
+  trampa / arma), **jaulas** de supervivientes y **barreras** destructibles.
+- ✅ **Combate 1:1**: cada zombie que llega al frente mata 1 soldado (escudo
+  frontal emergente). Derrota a 0; victoria al completar el nivel.
+- ✅ **100 niveles generados** proceduralmente (deterministas, fijos), con jefe
+  cada 10 y mecánicas introducidas poco a poco (tutorial implícito).
+- ✅ **Meta-tienda = punto de partida**: soldados iniciales y arma base (tiers),
+  comprados con monedas del banco.
+- ✅ Pooling de balas; arte/audio aún procedurales (placeholder).
 
-- ✅ **Core loop** — moverte arrastrando el dedo/ratón, disparo automático al
-  zombie más cercano, daño de contacto, vida y *game over*.
-- ✅ **Enemigos data-driven** — tipos Normal / Corredor / Tanque (ScriptableObjects)
-  y oleadas con composición y ritmo propios.
-- ✅ **Mini-jefe** — zombie enorme que aparece a los ~35 s y luego cada ~55 s.
-- ✅ **Pickups** — monedas que sueltan los enemigos y cofres que caen; se recogen
-  al contacto (tensión riesgo/recompensa: hay que ir a por ellos esquivando).
-- ✅ **Meta-progresión** — banco de monedas persistente (PlayerPrefs), tienda de
-  mejoras (daño, cadencia, vida, velocidad) con curva de coste creciente.
-- ✅ **Armas** — Pistola (siempre) y Escopeta (se compra y equipa en la tienda).
-- ✅ **Juicy** — sacudida de cámara, "partículas" de impacto, números de daño.
-- ✅ **Audio** — SFX sintetizados y música chiptune en bucle (con toggle on/off).
-- ✅ **Arte pixel** — sprites de pixel-art dibujados por código (jugador, zombies,
-  balas, monedas, cofres) sustituyendo a las primitivas cuadradas.
-- ✅ **Soporte de build Android** — APK de prueba generable desde el editor.
+⚠️ **Pendiente (requiere a ti)**: abrir en Unity para **compilar** (se escribió sin
+poder compilar), **jugar y validar** que engancha (hito 2.9), tunear balance
+(6.2) y hacer el **build APK + prueba en el móvil** (8.1).
 
 ## Cómo abrirlo y jugar
 
-1. Abre **Unity Hub** → *Add* → selecciona esta carpeta (`zombie-dash`).
-   Usa **Unity 6000.4.9f1**.
-2. En el editor, abre una escena (doble clic):
-   - **`Assets/Scenes/MainMenu.unity`** → arranca en el menú con la tienda
-     (recomendado para ver el flujo completo).
-   - **`Assets/Scenes/Game.unity`** → entra directo a una partida.
-3. Pulsa **Play**.
-   - **Menú:** botón *JUGAR*, panel de *MEJORAS* y *ARMA* (compras gastando
-     monedas del banco), toggle de música y *Reiniciar progreso* (para pruebas).
-   - **En partida (ratón):** mantén pulsado y arrastra horizontalmente para mover
-     al jugador. Los zombies bajan desde arriba; las balas salen solas. Recoge
-     monedas y cofres. Si te alcanzan, pierdes vida; al morir vuelves al menú con
-     las monedas ganadas en el banco.
-
-> 💡 Para que se vea como en móvil, en la ventana *Game* elige una resolución
-> vertical (p. ej. 1080x1920 o 9:16).
-
-### La pregunta de fondo
-El hito original era: **¿es mínimamente divertido?** Ahora hay mucho más con qué
-responderla (progresión, variedad, jefes). Si algo no engancha, se ajusta el
-balance antes de invertir en assets reales.
+1. Abre **Unity Hub → la carpeta** (Unity 6000.4.9f1). Al abrir, Unity compila y
+   genera los `.meta` de los scripts nuevos. **Revisa la Console** por si hay
+   `error CS` (y commitea los `.meta` que genere).
+2. Abre **`Assets/Scenes/MainMenu.unity`** (menú + tienda) o **`Game.unity`**
+   (directo a jugar) y pulsa **Play** (resolución vertical 9:16).
+3. **Arrastra** para mover el escuadrón. Alinéate con los gates buenos, rescata
+   jaulas, derriba barreras y sobrevive a la horda hasta el final del nivel.
 
 ## Arquitectura (code-first)
 
-Cada escena se monta por código desde su *bootstrap* (un único objeto), así no
-hay que cablear nada en el editor. El balance se tunea con los campos públicos de
-los componentes (`AutoShooter`, `EnemySpawner`, `PlayerController`) o, para datos,
-editando los ScriptableObjects de `Assets/Resources/`.
-
-Scripts en `Assets/Scripts/`:
+Cada escena se monta por código desde su *bootstrap* (un único GameObject):
+`GameBootstrap` (Game) y `MenuBootstrap` (MainMenu). Scripts en `Assets/Scripts/`:
 
 | Script | Responsabilidad |
 |---|---|
 | **Core** | |
-| `Core/GameBootstrap` | Monta la escena de juego (cámara, jugador, spawner, HUD y FX). |
-| `Core/MenuBootstrap` | Monta la escena de menú (cámara, música y `MenuUI`). |
-| `Core/GameManager` | Estado de la run: kills, tiempo, monedas, vida, game over (singleton). |
-| `Core/Economy` | Banco de monedas persistente entre partidas (PlayerPrefs). |
-| `Core/Upgrades` | Niveles de mejora persistentes; calcula valores y costes (usa `UpgradeData` o una tabla por defecto). |
-| `Core/Weapons` | Armas desbloqueables (Pistola/Escopeta): comprar, equipar, persistir. |
-| `Core/Prims` | Fábrica de objetos/sprites primitivos. |
-| **Data** (ScriptableObjects) | |
-| `Data/EnemyData` | Stats y aspecto de un tipo de zombie. |
-| `Data/WaveData` | Composición (por peso) y ritmo de una oleada. |
-| `Data/UpgradeData` | Curva de una mejora (valor base/por nivel y coste). |
+| `Core/GameBootstrap` | Monta la partida (cámara, GameManager, escuadrón, LevelRunner, HUD). |
+| `Core/MenuBootstrap` | Monta el menú (cámara, música, MenuUI). |
+| `Core/GameManager` | Estado de la run, nivel, tier de arma, victoria/derrota (singleton). |
+| `Core/Campaign` | Nivel actual de la campaña (1..100), persistente. |
+| `Core/LevelGenerator` | Generador híbrido determinista de los 100 niveles. |
+| `Core/LevelDefinition` | Modelo de nivel (encuentros por tiempo). |
+| `Core/LevelRunner` | Reproduce el nivel: scroll y spawn de encuentros + jefe. |
+| `Core/Economy` | Banco de monedas persistente. |
+| `Core/StartingPoint` | Meta-tienda: punto de partida permanente (unidades, arma). |
+| `Core/Weapons` | Arma global por tiers (daño/cadencia/streams). |
+| `Core/Prims` | Fábrica de primitivas 2D. |
 | **Player** | |
-| `Player/PlayerController` | Movimiento por arrastre + vida. |
-| `Player/AutoShooter` | Apunta al enemigo más cercano y dispara según el arma equipada. |
+| `Player/Squad` | Escuadrón-multitud: recuento, formación √N, movimiento, erosión. |
+| `Player/SquadShooter` | Disparo recto por streams con densidad y tier de arma. |
 | **Combat** | |
-| `Combat/Bullet` | Proyectil: se mueve y daña al impactar. |
-| `Combat/Pickup` | Monedas y cofres que caen y se recogen al contacto. |
+| `Combat/Bullet` | Proyectil (con pool) que daña a cualquier `IShootable`. |
+| `Combat/IShootable` | Interfaz de "disparable" (zombie/jaula/barrera). |
+| `Combat/Gate` | Gate en carril: efecto +/×/trampa/arma al alinearse. |
+| `Combat/Cage` | Jaula: se rompe a tiros → +unidades. |
+| `Combat/Barrier` | Muro destructible; si llega intacto arrasa el frente. |
 | **Enemies** | |
-| `Enemies/Enemy` | Zombie: avanza, daña al contacto, muere por balas, suelta monedas. Incluye variante mini-jefe. |
-| `Enemies/EnemySpawner` | Reproduce las oleadas (`WaveData`) con dificultad creciente y lanza mini-jefes. |
-| **FX** | |
-| `FX/CameraShake` | Sacudida de cámara (screen shake). |
-| `FX/HitEffect` | "Partículas" de impacto hechas con primitivas. |
-| `FX/FloatingTextManager` | Números de daño flotantes (IMGUI). |
-| `FX/Sfx` | Efectos de sonido sintetizados por código. |
-| `FX/Music` | Loop chiptune procedural con toggle on/off. |
-| `FX/PixelArt` | Sprites de pixel-art dibujados por código en `Texture2D`. |
-| **UI** | |
-| `UI/Hud` | HUD de la run (vida, kills, tiempo, monedas) con IMGUI. |
-| `UI/MenuUI` | Menú principal: banco, jugar, tienda de mejoras y armas, música, reset (IMGUI). |
+| `Enemies/Enemy` | Zombie: baja hacia el escuadrón; contacto 1:1; jefe. |
+| **FX / UI** | |
+| `FX/*` | Pixel-art, SFX, música, sacudida, números de daño (procedurales). |
+| `UI/Hud` | Unidades, nivel, barra de progreso, victoria/derrota (IMGUI). |
+| `UI/MenuUI` | Menú y tienda de punto de partida (IMGUI). |
 | **Editor** | |
-| `Editor/ZombieDashSetup` | Menús *Zombie Dash → Crear escena de juego / de menú*. |
-| `Editor/CreateGameData` | Menú *Crear datos de juego (enemigos y oleadas)*. |
-| `Editor/BuildAndroid` | Menú *Build APK (Android)*. |
+| `Editor/ZombieDashSetup` | Menús *Zombie Rush → Crear escena de juego / de menú*. |
+| `Editor/CreateGameData` | Menú *Zombie Rush → Crear datos de juego*. |
+| `Editor/BuildAndroid` | Menú *Zombie Rush → Build APK (Android)*. |
 
-### Datos del juego
-Los ScriptableObjects generados viven en `Assets/Resources/` y se cargan por
-código con `Resources.LoadAll`:
+> Dormantes del juego anterior (compilan, sin uso): `Player/PlayerController`,
+> `Enemies/EnemySpawner`, `Combat/Pickup`, `Core/Upgrades`, `Data/UpgradeData`.
 
-- `Resources/Enemies/` → Normal, Corredor, Tanque.
-- `Resources/Waves/` → Wave_01…Wave_04 (se reproducen en orden por nombre).
-- `Resources/Upgrades/` → Damage, FireRate, MaxHealth, MoveSpeed.
+## Compilar APK (CLI)
 
-Se regeneran con el menú *Zombie Dash → Crear datos de juego*.
+```bash
+/Applications/Unity/Hub/Editor/6000.4.9f1/Unity.app/Contents/MacOS/Unity \
+  -quit -batchmode -nographics -projectPath "$(pwd)" \
+  -buildTarget Android -executeMethod BuildAndroid.BuildAPK -logFile -
+```
+Genera `Builds/ZombieRush.apk` (IL2CPP+ARM64, portrait, package `com.luismiguel.zombierush`),
+con **ambas escenas** (menú + juego). Instalar: `adb install -r Builds/ZombieRush.apk`.
 
-## Siguientes pasos (roadmap)
+## Siguientes pasos
 
-Con las Fases 0–4 cerradas, lo que queda es **publicar** y **pulir el vestido**:
-
-- **Fase 5 — Publicación:** probar en dispositivo Android real, firma de la app,
-  ficha de Google Play (capturas, textos), *testing* cerrado y rollout.
-- **Pulido de UI:** sustituir los menús/HUD de IMGUI (`OnGUI`) por un Canvas de
-  uGUI propio.
-- **Assets reales (opcional):** cambiar el arte pixel y el audio procedurales por
-  un pack de sprites y SFX/música reales (la arquitectura ya lo deja enchufar).
-- **Profundidad de juego:** más armas/enemigos, variedad y retención.
+- Validar diversión y **tunear balance** (curvas D/G, valores de gates, vida/cadencia).
+- Pulir UI (IMGUI → uGUI) y meter arte/audio reales (la arquitectura ya lo permite).
+- Publicación en Google Play (firma, ficha, testing cerrado).
 
 ## Notas técnicas
 
-- Unity **6000.4.9f1**, plantilla 2D, Built-in Render Pipeline.
-- Input Manager clásico (sin paquete extra): ratón en editor, tacto en móvil.
-- **Arte, audio y UI son procedurales (code-only)**: no hay assets binarios
-  todavía, así que el repo no necesita Git LFS por ahora.
-- Cuando se añadan assets binarios (sprites, audio), instalar **Git LFS**
-  (`brew install git-lfs && git lfs install`) y trackear `*.png`, `*.wav`, etc.
+- Unity **6000.4.9f1**, 2D, Built-in RP, Android portrait.
+- Arte/audio/UI **procedurales** (sin assets binarios → sin Git LFS aún).
 - Desarrollo guiado por specs con **OpenSpec** (`openspec/`).

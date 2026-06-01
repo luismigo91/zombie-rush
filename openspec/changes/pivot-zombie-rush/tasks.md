@@ -46,11 +46,11 @@
 
 ## 7. Rename a Zombie Rush
 
-- [ ] 7.1 `PlayerSettings`: `productName` = "Zombie Rush", `applicationIdentifier` = `com.luismiguel.zombierush`
-- [ ] 7.2 Actualizar `README.md` y `CLAUDE.md`
-- [ ] 7.3 Nombres visibles en UI y en los menús de editor (`Zombie Dash → ...` → `Zombie Rush → ...`)
-- [ ] 7.4 Revisar nombres de escena y la lista de escenas de `BuildAndroid` (incluir `MainMenu` si el menú debe ir en el APK)
-- [ ] 7.5 Actualizar la doc de Notion y la memoria del proyecto
+- [x] 7.1 `ProjectSettings`: `productName` = "Zombie Rush", `applicationIdentifier` = `com.luismiguel.zombierush` (y en `BuildAndroid`)
+- [x] 7.2 `README.md` y `CLAUDE.md` reescritos para Zombie Rush
+- [x] 7.3 Nombres visibles: `MenuUI` ("ZOMBIE RUSH") y menús de editor (`Zombie Rush → ...`)
+- [x] 7.4 `BuildAndroid`: ambas escenas en el APK (menú+juego), salida `ZombieRush.apk`; `openspec/config.yaml` actualizado
+- [ ] 7.5 Memoria del proyecto actualizada; **Notion pendiente** (servicio externo, requiere tu OK)
 
 ## 8. Cierre del cambio
 

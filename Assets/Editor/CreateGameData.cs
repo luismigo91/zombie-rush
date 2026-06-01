@@ -13,7 +13,7 @@ using UnityEngine;
 /// </summary>
 public static class CreateGameData
 {
-    [MenuItem("Zombie Dash/Crear datos de juego (enemigos y oleadas)")]
+    [MenuItem("Zombie Rush/Crear datos de juego (enemigos y oleadas)")]
     public static void CreateData()
     {
         EnsureFolder("Assets/Resources");

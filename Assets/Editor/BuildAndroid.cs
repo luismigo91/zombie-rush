@@ -16,15 +16,16 @@ using UnityEngine;
 /// </summary>
 public static class BuildAndroid
 {
-    const string ScenePath = "Assets/Scenes/Game.unity";
+    // El APK incluye ambas escenas: arranca en el menú y puede cargar el juego.
+    static readonly string[] Scenes = { "Assets/Scenes/MainMenu.unity", "Assets/Scenes/Game.unity" };
 
-    [MenuItem("Zombie Dash/Build APK (Android)")]
+    [MenuItem("Zombie Rush/Build APK (Android)")]
     public static void BuildAPK()
     {
         // --- Identidad de la app ---
         PlayerSettings.companyName = "LuisMiguel";
-        PlayerSettings.productName = "Zombie Dash";
-        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.luismiguel.zombiedash");
+        PlayerSettings.productName = "Zombie Rush";
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.luismiguel.zombierush");
 
         // --- Orientación vertical fija (juego portrait) ---
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
@@ -42,11 +43,11 @@ public static class BuildAndroid
         EditorUserBuildSettings.buildAppBundle = false;
 
         Directory.CreateDirectory("Builds");
-        string apkPath = Path.Combine("Builds", "ZombieDash.apk");
+        string apkPath = Path.Combine("Builds", "ZombieRush.apk");
 
         var options = new BuildPlayerOptions
         {
-            scenes = new[] { ScenePath },
+            scenes = Scenes,
             locationPathName = apkPath,
             target = BuildTarget.Android,
             options = BuildOptions.Development
