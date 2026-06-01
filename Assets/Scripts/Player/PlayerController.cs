@@ -105,10 +105,11 @@ public class PlayerController : MonoBehaviour
 
         Health -= damage;
 
-        // Feedback de golpe recibido: sacudida fuerte, flash rojo y chispa.
+        // Feedback de golpe recibido: sacudida fuerte, flash rojo, chispa y sonido.
         CameraShake.Shake(0.3f, 0.25f);
         Hud.FlashDamage();
         HitEffect.Burst(transform.position, new Color(1f, 0.3f, 0.3f), 6, 5f, 0.16f, 0.3f);
+        Sfx.Hurt();
 
         if (Health <= 0f)
         {

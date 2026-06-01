@@ -65,9 +65,15 @@ public class Hud : MonoBehaviour
 
         float bw = w * 0.62f, bh = 110 * u, bx = (w - bw) * 0.5f;
         if (GUI.Button(new Rect(bx, h * 0.58f, bw, bh), "REINTENTAR", btn))
+        {
+            Sfx.Click();
             gm.Restart();
+        }
         if (GUI.Button(new Rect(bx, h * 0.58f + bh + 20 * u, bw, bh), "MENÚ / MEJORAS", btn))
+        {
+            Sfx.Click();
             gm.GoToMenu();
+        }
     }
 
     static GUIStyle Style(int fontSize, TextAnchor anchor)

@@ -120,9 +120,10 @@ public class Enemy : MonoBehaviour
         if (GameManager.Instance != null)
             GameManager.Instance.AddKill();
 
-        // Estallido en el color del enemigo + sacudida de cámara.
+        // Estallido en el color del enemigo + sacudida de cámara + sonido.
         HitEffect.Burst(transform.position, baseColor, 10, 6f, 0.16f, 0.35f);
         CameraShake.Shake(0.12f, 0.18f);
+        Sfx.Death();
 
         Pickup.SpawnCoin(transform.position, coinValue);
         Destroy(gameObject);

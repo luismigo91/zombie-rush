@@ -21,6 +21,8 @@ public class MenuBootstrap : MonoBehaviour
         cam.orthographic = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = new Color(0.08f, 0.08f, 0.11f);
+        if (cam.GetComponent<AudioListener>() == null)
+            cam.gameObject.AddComponent<AudioListener>();
 
         new GameObject("MenuUI").AddComponent<MenuUI>();
     }

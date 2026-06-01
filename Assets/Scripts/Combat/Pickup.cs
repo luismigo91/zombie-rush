@@ -56,6 +56,7 @@ public class Pickup : MonoBehaviour
         {
             if (GameManager.Instance != null)
                 GameManager.Instance.AddCoins(coinValue);
+            Sfx.Coin();
             Destroy(gameObject);
         }
     }

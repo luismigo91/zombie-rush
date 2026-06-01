@@ -59,5 +59,6 @@ public class AutoShooter : MonoBehaviour
     {
         Vector2 dir = ((Vector2)(target.transform.position - transform.position)).normalized;
         Bullet.Spawn(transform.position, dir, bulletSpeed, damage);
+        Sfx.Shoot();
     }
 }

@@ -52,6 +52,8 @@ public class GameBootstrap : MonoBehaviour
 
         if (cam.GetComponent<CameraShake>() == null)
             cam.gameObject.AddComponent<CameraShake>();
+        if (cam.GetComponent<AudioListener>() == null)
+            cam.gameObject.AddComponent<AudioListener>();
     }
 
     PlayerController CreatePlayer()

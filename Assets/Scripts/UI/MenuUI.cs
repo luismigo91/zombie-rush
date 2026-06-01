@@ -34,7 +34,10 @@ public class MenuUI : MonoBehaviour
         // --- JUGAR ---
         float playW = w * 0.6f, playH = 120 * u;
         if (GUI.Button(new Rect((w - playW) * 0.5f, h * 0.18f, playW, playH), "JUGAR", bigBtn))
+        {
+            Sfx.Click();
             SceneManager.LoadScene("Game");
+        }
 
         // --- MEJORAS ---
         float y = h * 0.34f;
@@ -86,7 +89,10 @@ public class MenuUI : MonoBehaviour
             bool canAfford = Economy.Coins >= cost;
             GUI.enabled = canAfford;
             if (GUI.Button(bRect, $"{cost} ⤴", buyStyle))
+            {
+                Sfx.Click();
                 Upgrades.TryBuy(stat);
+            }
             GUI.enabled = true;
         }
     }
