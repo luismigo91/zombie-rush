@@ -5,7 +5,8 @@ using UnityEngine.SceneManagement;
 public enum GameState
 {
     Playing,
-    GameOver
+    GameOver,
+    Won
 }
 
 /// <summary>
@@ -25,8 +26,14 @@ public class GameManager : MonoBehaviour
     public int CurrentWave { get; set; } = 1;   // la fija el EnemySpawner
     public float RunTime { get; private set; }
 
-    /// <summary>Referencia al jugador activo (la asigna el propio PlayerController).</summary>
+    /// <summary>Referencia al jugador activo (dormante; lo usaba PlayerController pre-pivote).</summary>
     public PlayerController Player { get; set; }
+
+    /// <summary>Referencia al escuadrón activo (Zombie Rush; la asigna el propio Squad).</summary>
+    public Squad Squad { get; set; }
+
+    public int Level { get; set; } = 1;       // nivel actual (1..100)
+    public float LevelProgress { get; set; }  // 0..1 dentro del nivel (lo fija LevelRunner)
 
     void Awake()
     {
@@ -58,6 +65,21 @@ public class GameManager : MonoBehaviour
         if (State == GameState.GameOver) return;
         State = GameState.GameOver;
         Economy.Add(Coins); // las monedas de la run pasan al banco persistente
+    }
+
+    /// <summary>Derrota: el escuadrón se quedó sin soldados.</summary>
+    public void OnSquadEmpty()
+    {
+        if (State != GameState.Playing) return;
+        State = GameState.GameOver;
+        CameraShake.Shake(0.3f, 0.3f);
+    }
+
+    /// <summary>Victoria: se superó el nivel (clímax/recorrido completado).</summary>
+    public void OnLevelComplete()
+    {
+        if (State != GameState.Playing) return;
+        State = GameState.Won;
     }
 
     /// <summary>Reinicia la run (vuelve a cargar la escena de juego).</summary>

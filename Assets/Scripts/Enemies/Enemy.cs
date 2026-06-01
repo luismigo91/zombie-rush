@@ -81,8 +81,8 @@ public class Enemy : MonoBehaviour
     void TryAcquireTarget()
     {
         var gm = GameManager.Instance;
-        if (gm != null && gm.Player != null)
-            target = gm.Player.transform;
+        if (gm != null && gm.Squad != null)
+            target = gm.Squad.transform;
     }
 
     void Update()
@@ -98,6 +98,21 @@ public class Enemy : MonoBehaviour
         if (gm == null || gm.State != GameState.Playing) return;
 
         if (target == null) TryAcquireTarget();
+
+        // Contacto 1:1: si alcanza el frente del escuadrón, mata 1 soldado y muere.
+        Squad squad = gm.Squad;
+        if (squad != null && squad.Count > 0)
+        {
+            float reach = squad.Radius + 0.25f;
+            Vector2 toSquad = (Vector2)(transform.position - squad.transform.position);
+            if (toSquad.sqrMagnitude <= reach * reach)
+            {
+                squad.RemoveFront(1);
+                Sfx.Hurt();
+                Destroy(gameObject);
+                return;
+            }
+        }
 
         if (target != null)
         {
@@ -136,7 +151,7 @@ public class Enemy : MonoBehaviour
         CameraShake.Shake(0.12f, 0.18f);
         Sfx.Death();
 
-        Pickup.SpawnCoin(transform.position, coinValue);
+        // (Las monedas/economía se reintroducen en la fase de meta-tienda.)
         Destroy(gameObject);
     }
 

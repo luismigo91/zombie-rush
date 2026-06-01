@@ -1,15 +1,13 @@
 using UnityEngine;
 
 /// <summary>
-/// Punto de entrada de la escena de juego. Monta TODA la partida por código:
-/// cámara, GameManager, jugador (con disparo), spawner y HUD. Así puedes pulsar
-/// Play sin cablear nada en el editor durante la fase gris.
+/// Punto de entrada de la escena de juego (Zombie Rush). Monta TODA la partida
+/// por código: cámara, GameManager, escuadrón (con su disparo), LevelRunner y HUD.
+/// Así puedes pulsar Play sin cablear nada en el editor.
 ///
-/// Sólo hay que tener un GameObject con este componente en la escena Game
-/// (lo crea automáticamente el menú "Zombie Dash/Crear escena de juego").
-///
-/// Más adelante, parte de esto migrará a prefabs + ScriptableObjects, que es la
-/// forma estándar de Unity (ver Plan técnico).
+/// Vertical slice del pivote: un escuadrón-multitud que se mueve en X, dispara
+/// recto y crece con gates mientras esquiva/derriba hordas que bajan. El menú y
+/// la meta-tienda llegan en fases posteriores; para probar, abre Game.unity.
 /// </summary>
 public class GameBootstrap : MonoBehaviour
 {
@@ -21,16 +19,19 @@ public class GameBootstrap : MonoBehaviour
         SetupCamera();
         Music.Play();
 
-        // GameManager primero: su Awake fija Instance de inmediato, así el resto
-        // de componentes ya lo encuentran.
+        // GameManager primero: su Awake fija Instance de inmediato.
         var gm = new GameObject("GameManager").AddComponent<GameManager>();
 
-        PlayerController player = CreatePlayer();
-        gm.Player = player;
-
-        new GameObject("EnemySpawner").AddComponent<EnemySpawner>();
-        new GameObject("HUD").AddComponent<Hud>();
+        // Texto flotante (números de daño) usado por Enemy/Squad.
         new GameObject("FloatingText").AddComponent<FloatingTextManager>();
+
+        // Escuadrón cerca del borde inferior + su disparo.
+        Squad squad = CreateSquad();
+        gm.Squad = squad;
+
+        // Conductor del nivel (scroll de zombies y gates) y HUD.
+        new GameObject("LevelRunner").AddComponent<LevelRunner>();
+        new GameObject("HUD").AddComponent<Hud>();
     }
 
     void SetupCamera()
@@ -57,24 +58,14 @@ public class GameBootstrap : MonoBehaviour
             cam.gameObject.AddComponent<AudioListener>();
     }
 
-    PlayerController CreatePlayer()
+    Squad CreateSquad()
     {
-        // Jugador cerca del borde inferior, centrado.
-        float y = -cameraSize + 0.9f;
-        GameObject go = Prims.MakeSprite("Player", PixelArt.Player, Color.white, new Vector2(0.85f, 0.85f), new Vector3(0f, y, 0f), sortingOrder: 2);
+        float y = -cameraSize + 1.8f;
+        var go = new GameObject("Squad");
+        go.transform.position = new Vector3(0f, y, 0f);
 
-        var col = go.AddComponent<BoxCollider2D>();
-        col.isTrigger = true;
-
-        // Aplica las mejoras compradas (PlayerController.Start lee maxHealth).
-        var pc = go.AddComponent<PlayerController>();
-        pc.maxHealth = Upgrades.Value(StatId.MaxHealth);
-        pc.moveMultiplier = Upgrades.Value(StatId.MoveSpeed);
-
-        var shooter = go.AddComponent<AutoShooter>();
-        shooter.damage = Upgrades.Value(StatId.Damage);
-        shooter.fireRate = Upgrades.Value(StatId.FireRate);
-
-        return pc;
+        var squad = go.AddComponent<Squad>();
+        go.AddComponent<SquadShooter>();
+        return squad;
     }
 }

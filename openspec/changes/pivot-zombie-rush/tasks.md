@@ -1,20 +1,20 @@
 ## 1. Preparación y red de seguridad
 
-- [ ] 1.1 Etiquetar el estado actual: `git tag pre-zombie-rush` (rollback al juego anterior)
-- [ ] 1.2 Crear un sistema de pooling reutilizable (balas, unidades, zombies) en `Assets/Scripts/Core`
-- [ ] 1.3 Decidir dónde vive el vertical slice (reusar escena `Game` con un bootstrap nuevo)
+- [x] 1.1 Etiquetar el estado actual: `git tag pre-zombie-rush` (rollback al juego anterior)
+- [ ] 1.2 Crear un sistema de pooling reutilizable (balas, unidades, zombies) — APLAZADO al slice: el fuego por streams ya acota las balas; el pooling es de la fase de rendimiento
+- [x] 1.3 Decidir dónde vive el vertical slice (se reescribe `GameBootstrap` en la escena `Game`)
 
 ## 2. Vertical slice — loop jugable mínimo (squad + disparo recto + scroll + 1:1)
 
-- [ ] 2.1 `SquadController`: recuento de unidades + formación blob con primitivas (resolver geometría del blob: recuento → ancho y → orden de bajas)
-- [ ] 2.2 Movimiento del escuadrón solo en X con límites de pantalla (reusar input de `PlayerController`)
-- [ ] 2.3 Reescribir `AutoShooter`: disparo recto automático hacia +Y (una bala por unidad de momento, desde el pool)
-- [ ] 2.4 `LevelRunner` mínimo: scroll del mundo con un nivel hardcodeado
-- [ ] 2.5 Adaptar `Enemy`/`EnemySpawner` a hordas que aparecen dentro del scroll
-- [ ] 2.6 Combate 1:1: trigger en el frente del blob → resta 1 unidad y mata al zombie; escudo de la fila delantera emergente del orden
-- [ ] 2.7 `GameManager`: derrota al llegar a 0 unidades, victoria al superar el clímax
-- [ ] 2.8 HUD mínimo (IMGUI): nº de unidades y nivel actual
-- [ ] 2.9 Compilar APK y **validar en el Pixel si el loop es divertido** antes de seguir
+- [x] 2.1 `Squad`: recuento de unidades + formación blob disco (√N) con primitivas; erosión por el frente (máxima Y)
+- [x] 2.2 Movimiento del escuadrón solo en X con límites de pantalla (arrastre, reutilizando el patrón de `PlayerController`)
+- [x] 2.3 `SquadShooter` (reemplaza a `AutoShooter`): disparo recto hacia +Y por streams con daño escalado por densidad
+- [x] 2.4 `LevelRunner` mínimo: scroll del mundo con un nivel hardcodeado (duración fija → victoria)
+- [x] 2.5 Adaptar `Enemy` a hordas que bajan hacia el escuadrón (spawn desde `LevelRunner`)
+- [x] 2.6 Combate 1:1: al alcanzar el frente del blob → resta 1 unidad y muere el zombie; escudo frontal emergente del orden
+- [x] 2.7 `GameManager`: derrota al llegar a 0 unidades, victoria al completar el nivel (estado `Won`)
+- [x] 2.8 HUD mínimo (IMGUI): nº de unidades, nivel y barra de progreso; pantallas de victoria/derrota
+- [ ] 2.9 Compilar/abrir en Unity y **validar si el loop es divertido** antes de seguir
 
 ## 3. Elementos de recorrido (capacidad `course-elements`)
 

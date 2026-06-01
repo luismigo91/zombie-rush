@@ -13,7 +13,7 @@ public class Bullet : MonoBehaviour
     Vector2 dir;
     float speed;
     float damage;
-    float life = 3f; // segundos antes de autodestruirse
+    float life = 1.4f; // segundos antes de autodestruirse (acota balas sin pooling)
 
     /// <summary>Crea una bala en pos, viajando hacia dir, con la velocidad y daño dados.</summary>
     public static Bullet Spawn(Vector3 pos, Vector2 dir, float speed, float damage)
