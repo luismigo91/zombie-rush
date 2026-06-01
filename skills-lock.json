@@ -6,6 +6,120 @@
       "sourceType": "github",
       "skillPath": "skills/game-developer/SKILL.md",
       "computedHash": "5310da9a7910ae7e9d119abb7377b6213b1dc7767e4aacd818b8fdb60abab36f"
+    },
+    "gplay-cli-usage": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-cli-usage/SKILL.md",
+      "computedHash": "f7965d712eac14537a7abf6159cf75ec4cce4f2b003aa0f10c6d6fe1ae9529db"
+    },
+    "gplay-gradle-build": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-gradle-build/SKILL.md",
+      "computedHash": "36851737ac86f9e837c0494800725bf77ea3084ff72c7934fdf9a61c426197dc"
+    },
+    "gplay-iap-setup": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-iap-setup/SKILL.md",
+      "computedHash": "21af86529a4fc966b03ef9f01bcdc237ac9de2b71d5b6a651d34cc65d98bab2e"
+    },
+    "gplay-metadata-sync": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-metadata-sync/SKILL.md",
+      "computedHash": "6f7252d5ef7efbb29500056887d08d09e41a22fcd76718015b8e52ef96b0be87"
+    },
+    "gplay-migrate-fastlane": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-migrate-fastlane/SKILL.md",
+      "computedHash": "56fe103245788f840e2313f68e9381ba70ead1a7f1852a2db3cce9023e52ae31"
+    },
+    "gplay-ppp-pricing": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-ppp-pricing/SKILL.md",
+      "computedHash": "569f65d63b7f97d9ea96326b630e4105f2961a2e2a2dbf77d3d026022889892e"
+    },
+    "gplay-purchase-verification": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-purchase-verification/SKILL.md",
+      "computedHash": "1bd123546ebc0a698e20e2fc2244523ddc462b3b8fd7e7d529efcee3f726ece7"
+    },
+    "gplay-release-flow": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-release-flow/SKILL.md",
+      "computedHash": "d7f0f11917101563f89bcaad9b0c9f803129c4e5a082008da3b7944fb1990049"
+    },
+    "gplay-reports-download": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-reports-download/SKILL.md",
+      "computedHash": "9d9493d8fb433f44472adeca0eb8929737ae8201a61327b9350691fd6d31978d"
+    },
+    "gplay-review-management": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-review-management/SKILL.md",
+      "computedHash": "553cf178efefec9ac9b51d77802b2bc4ba2c7c880251bfcd5c2f05fd086fbb13"
+    },
+    "gplay-rollout-management": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-rollout-management/SKILL.md",
+      "computedHash": "bca9300da57942bacf4cee8627fa7e059074653fa2ad04b11bb364311a9c9bb4"
+    },
+    "gplay-screenshot-automation": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-screenshot-automation/SKILL.md",
+      "computedHash": "8631ed93cfa90bd6b3ba7ee7eb4b2b42b7b0130ed37b46a5b8e2c892d88cf0f7"
+    },
+    "gplay-signing-setup": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-signing-setup/SKILL.md",
+      "computedHash": "90011a12e5b2b819212c1b60606aa40e0a58049a8f1ed904557ca2625eddfd3a"
+    },
+    "gplay-submission-checks": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-submission-checks/SKILL.md",
+      "computedHash": "56c79800ceffc2a906b3d9eb86f042d395ab39d587fe5a2e72068b0c1fb79202"
+    },
+    "gplay-subscription-localization": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-subscription-localization/SKILL.md",
+      "computedHash": "79ab7c95b132d0edd8f45116b00d508d5798c55e761defc608c1b03da5b74542"
+    },
+    "gplay-testers-orchestration": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-testers-orchestration/SKILL.md",
+      "computedHash": "2a25157fa81d0f87fd0888a290f9f0ce13b686ecb4b73b493b7f2a324cac2a12"
+    },
+    "gplay-user-management": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-user-management/SKILL.md",
+      "computedHash": "031e38b43f9e007042bd71da2ba103709898a3a940c5dbac8cb4dd2dc6c36b2d"
+    },
+    "gplay-vitals-monitoring": {
+      "source": "tamtom/gplay-cli-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gplay-vitals-monitoring/SKILL.md",
+      "computedHash": "e739ecc62b57352899a4509a57477dc69012ca4ebae6c5cf922da26c6ea40ca4"
+    },
+    "unity-developer": {
+      "source": "rmyndharis/antigravity-skills",
+      "sourceType": "github",
+      "skillPath": "skills/unity-developer/SKILL.md",
+      "computedHash": "bdd1a84f260a288a8c186e6b248f728f0d112db4fa287f5acba8ec5538fc8bbb"
     }
   }
 }
