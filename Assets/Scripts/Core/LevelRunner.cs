@@ -71,7 +71,13 @@ public class LevelRunner : MonoBehaviour
         switch (ev.type)
         {
             case EncounterType.Horde:
-                for (int i = 0; i < ev.hordeCount; i++)
+            {
+                // La amenaza sigue al escuadrón: más unidades → hordas mayores
+                // (evita que el snowball convierta la run en un paseo).
+                int squadN = GameManager.Instance != null && GameManager.Instance.Squad != null
+                    ? GameManager.Instance.Squad.Count : 0;
+                int count = Mathf.Min(50, ev.hordeCount + Mathf.FloorToInt(squadN * 0.25f));
+                for (int i = 0; i < count; i++)
                 {
                     float px = Random.Range(minX, maxX);
                     Enemy.Spawn(new Vector3(px, topY + i * 0.7f, 0f),
@@ -79,6 +85,7 @@ public class LevelRunner : MonoBehaviour
                         new Color(0.85f, 0.25f, 0.25f), new Vector2(0.55f, 0.55f));
                 }
                 break;
+            }
 
             case EncounterType.GatePair:
                 float gw = laneOffset * 0.9f;
