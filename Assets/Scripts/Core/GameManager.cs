@@ -49,7 +49,8 @@ public class GameManager : MonoBehaviour
             return;
         }
         Instance = this;
-        Level = Campaign.Current; // nivel actual de la campaña (persistente)
+        Level = Campaign.Current;                  // nivel actual de la campaña (persistente)
+        WeaponTier = StartingPoint.BaseWeaponTier;  // arma base comprada en la tienda
     }
 
     void Update()
@@ -77,6 +78,7 @@ public class GameManager : MonoBehaviour
     {
         if (State != GameState.Playing) return;
         State = GameState.GameOver;
+        Economy.Add(Coins); // las monedas de la run pasan al banco
         CameraShake.Shake(0.3f, 0.3f);
     }
 
@@ -85,7 +87,8 @@ public class GameManager : MonoBehaviour
     {
         if (State != GameState.Playing) return;
         State = GameState.Won;
-        Campaign.Current = Level + 1; // avanza la campaña (cap a 100 en Campaign)
+        Economy.Add(Coins);            // las monedas de la run pasan al banco
+        Campaign.Current = Level + 1;  // avanza la campaña (cap a 100 en Campaign)
     }
 
     /// <summary>Reinicia la run (vuelve a cargar la escena de juego).</summary>

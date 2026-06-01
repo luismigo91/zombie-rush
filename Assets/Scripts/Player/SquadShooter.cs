@@ -4,21 +4,21 @@ using UnityEngine;
 /// Disparo del escuadrón (Zombie Rush): RECTO hacia arriba, sin auto-apuntado.
 /// Va en el mismo GameObject que Squad.
 ///
-/// No dispara una bala por soldado (sería redundante y caro): emite fuego por
-/// "streams" repartidos a lo ancho del blob, y el daño de cada stream escala con
-/// la DENSIDAD (cuántos soldados hay por stream). Así:
+/// No dispara una bala por soldado: emite fuego por "streams" repartidos a lo
+/// ancho del blob, y el daño de cada stream escala con la DENSIDAD (soldados por
+/// stream). El arma global (Weapons, por tiers que sube con los gates de arma)
+/// modula daño, cadencia y nº de streams extra.
 ///   - mientras el blob ensancha (√N) → más streams = más cobertura.
 ///   - pasado el tope de ancho → mismo nº de streams pero más daño = densidad.
-/// El DPS total ≈ baseDamage · N · fireRate, crezca como crezca el escuadrón.
 /// </summary>
 [RequireComponent(typeof(Squad))]
 public class SquadShooter : MonoBehaviour
 {
-    [Header("Arma base (placeholder; luego tiers en la meta-tienda)")]
-    public float baseDamage = 7f;     // daño por soldado
-    public float fireRate = 3.5f;     // ráfagas por segundo
+    [Header("Arma base (la modula el tier de Weapons)")]
+    public float baseDamage = 7f;     // daño por soldado (tier 0)
+    public float fireRate = 3.5f;     // ráfagas/seg (tier 0)
     public float bulletSpeed = 16f;
-    public float streamSpacing = 0.42f; // separación entre streams (ancho/columna)
+    public float streamSpacing = 0.42f;
     public int maxStreams = 11;
 
     Squad squad;
@@ -31,23 +31,25 @@ public class SquadShooter : MonoBehaviour
         var gm = GameManager.Instance;
         if (gm == null || gm.State != GameState.Playing) return;
 
+        Weapons.Tier tier = Weapons.Get(gm.WeaponTier);
+
         cooldown -= Time.deltaTime;
         if (cooldown > 0f) return;
 
-        Fire();
-        cooldown = 1f / Mathf.Max(0.01f, fireRate);
+        Fire(tier);
+        cooldown = 1f / Mathf.Max(0.01f, fireRate * tier.fireRateMult);
     }
 
-    void Fire()
+    void Fire(Weapons.Tier tier)
     {
         int n = squad.Count;
         if (n <= 0) return;
 
         float width = squad.Width;
-        int streams = Mathf.Clamp(Mathf.RoundToInt(width / streamSpacing), 1, maxStreams);
+        int streams = Mathf.Clamp(Mathf.RoundToInt(width / streamSpacing) + tier.extraStreams, 1, maxStreams);
         streams = Mathf.Min(streams, n);
 
-        float damagePerStream = baseDamage * n / streams; // densidad: el daño total se reparte
+        float damagePerStream = baseDamage * tier.damageMult * n / streams;
         float cx = transform.position.x;
         float y = squad.TopY;
 

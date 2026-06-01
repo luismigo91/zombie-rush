@@ -54,7 +54,7 @@ public class Squad : MonoBehaviour
         if (GameManager.Instance != null)
             GameManager.Instance.Squad = this;
 
-        Add(startCount);
+        Add(StartingPoint.StartUnits); // punto de partida de la meta-tienda
         Reflow(snap: true);
     }
 

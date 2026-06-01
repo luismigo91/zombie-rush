@@ -147,7 +147,10 @@ public class Enemy : MonoBehaviour, IShootable
     void Die()
     {
         if (GameManager.Instance != null)
+        {
             GameManager.Instance.AddKill();
+            GameManager.Instance.AddCoins(isBoss ? 25 : 1); // monedas de la run → banco al acabar
+        }
 
         // Estallido en el color del enemigo + sacudida de cámara + sonido.
         HitEffect.Burst(transform.position, baseColor, 10, 6f, 0.16f, 0.35f);

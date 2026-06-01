@@ -1,47 +1,29 @@
 using UnityEngine;
 
-public enum WeaponId { Pistola, Escopeta }
-
 /// <summary>
-/// Armas desbloqueables. La Pistola se tiene siempre; la Escopeta se compra con
-/// monedas del banco y se equipa. Todo persiste con PlayerPrefs.
+/// Arma GLOBAL del escuadrón por tiers (Zombie Rush). Todas las unidades disparan
+/// el mismo arma; el tier modula daño, cadencia y nº de streams. El tier base lo
+/// fija la meta-tienda (StartingPoint) y sube durante el nivel con los gates de
+/// arma (GameManager.WeaponTier).
 /// </summary>
 public static class Weapons
 {
-    public const int EscopetaCost = 150;
-
-    public static bool Owns(WeaponId w)
+    public struct Tier
     {
-        if (w == WeaponId.Pistola) return true;
-        return PlayerPrefs.GetInt("wpn_" + w, 0) == 1;
+        public string name;
+        public float damageMult;
+        public float fireRateMult;
+        public int extraStreams;
     }
 
-    public static WeaponId Equipped
+    public static readonly Tier[] Tiers =
     {
-        get
-        {
-            var e = (WeaponId)PlayerPrefs.GetInt("wpn_equipped", 0);
-            return Owns(e) ? e : WeaponId.Pistola;
-        }
-        set
-        {
-            if (!Owns(value)) return;
-            PlayerPrefs.SetInt("wpn_equipped", (int)value);
-            PlayerPrefs.Save();
-        }
-    }
+        new Tier { name = "Pistola",  damageMult = 1.0f, fireRateMult = 1.0f, extraStreams = 0 },
+        new Tier { name = "Subfusil", damageMult = 0.7f, fireRateMult = 2.0f, extraStreams = 0 },
+        new Tier { name = "Escopeta", damageMult = 1.6f, fireRateMult = 0.9f, extraStreams = 2 },
+    };
 
-    public static int Cost(WeaponId w) => w == WeaponId.Escopeta ? EscopetaCost : 0;
-    public static string Name(WeaponId w) => w == WeaponId.Escopeta ? "Escopeta" : "Pistola";
-
-    /// <summary>Compra y equipa un arma si hay monedas suficientes.</summary>
-    public static bool TryBuy(WeaponId w)
-    {
-        if (Owns(w)) return false;
-        if (!Economy.TrySpend(Cost(w))) return false;
-        PlayerPrefs.SetInt("wpn_" + w, 1);
-        PlayerPrefs.Save();
-        Equipped = w; // se equipa al comprarla
-        return true;
-    }
+    public static int MaxTier => Tiers.Length - 1;
+    public static Tier Get(int tier) => Tiers[Mathf.Clamp(tier, 0, MaxTier)];
+    public static string Name(int tier) => Get(tier).name;
 }

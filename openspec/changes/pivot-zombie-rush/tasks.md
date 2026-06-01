@@ -34,10 +34,10 @@
 
 ## 5. Meta-tienda reorientada (capacidad `meta-shop`)
 
-- [ ] 5.1 Reemplazar `Upgrades`/`UpgradeData` (% stats) por compras de punto de partida: unidades iniciales, arma base (tier inicial del arma global; pistola/escopeta como tiers) y rendimiento de gates
-- [ ] 5.2 Aplicar el punto de partida al inicio de cada nivel (reset del escuadrón)
-- [ ] 5.3 Migración PlayerPrefs: limpiar keys `upg_*`, conservar `coins`
-- [ ] 5.4 Actualizar `MenuUI` al catálogo nuevo; mantener `Economy` (banco) funcionando
+- [x] 5.1 `StartingPoint` reemplaza los % stats: compras de soldados iniciales y arma base (tiers en `Weapons`). (El "rendimiento de gates" como compra queda fuera de alcance por ahora.)
+- [x] 5.2 Punto de partida aplicado al inicio de cada nivel (`Squad` usa `StartUnits`; `GameManager` el tier base)
+- [x] 5.3 Migración PlayerPrefs (constructor estático de `StartingPoint`): borra `upg_*`/`wpn_*`, conserva `coins`
+- [x] 5.4 `MenuUI` reescrito a la tienda de punto de partida; `Economy` (banco) sigue funcionando; monedas por kill/nivel
 
 ## 6. Rendimiento y balance
 
