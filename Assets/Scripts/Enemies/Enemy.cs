@@ -3,29 +3,32 @@ using UnityEngine;
 
 /// <summary>
 /// Enemigo (zombie). Avanza hacia el jugador; al tocarlo le hace daño de
-/// contacto y desaparece (kamikaze, simplificación de la fase gris). Muere al
-/// recibir daño suficiente de las balas.
+/// contacto y desaparece (kamikaze). Muere al recibir daño de las balas y, al
+/// morir por balas, suelta una moneda (no si te alcanza: ahí ya te dañó).
 ///
-/// Mantiene una lista estática Enemy.All para que AutoShooter encuentre al más
-/// cercano sin usar búsquedas caras en cada disparo.
+/// Sus stats vienen de un EnemyData (ScriptableObject), de modo que cada tipo
+/// (normal, corredor, tanque) se define por datos y no por código.
 ///
-/// Fase 2: los tipos (normal, corredor, tanque) y sus stats vendrán de un
-/// ScriptableObject (EnemyData) en lugar de pasarse por parámetros aquí.
+/// Mantiene Enemy.All para que AutoShooter encuentre al más cercano sin búsquedas caras.
 /// </summary>
 public class Enemy : MonoBehaviour
 {
-    /// <summary>Registro de todos los enemigos vivos.</summary>
     public static readonly List<Enemy> All = new List<Enemy>();
 
     public float maxHealth = 30f;
     public float Health { get; private set; }
     public float moveSpeed = 2f;
     public float contactDamage = 15f;
+    public int coinValue = 1;
 
     Transform target;
 
-    /// <summary>Crea un enemigo por código con los stats indicados.</summary>
-    public static Enemy Spawn(Vector3 pos, float health, float speed, float dmg, Color color, Vector2 size)
+    /// <summary>Crea un enemigo a partir de su EnemyData.</summary>
+    public static Enemy Spawn(EnemyData data, Vector3 pos)
+        => Spawn(pos, data.health, data.moveSpeed, data.contactDamage, data.coinValue, data.color, data.size);
+
+    /// <summary>Crea un enemigo con stats explícitos (usado también como fallback).</summary>
+    public static Enemy Spawn(Vector3 pos, float health, float speed, float dmg, int coins, Color color, Vector2 size)
     {
         GameObject go = Prims.Make("Enemy", color, size, pos, sortingOrder: 1);
 
@@ -38,37 +41,37 @@ public class Enemy : MonoBehaviour
         rb.useFullKinematicContacts = true;
 
         var e = go.AddComponent<Enemy>();
-        e.Init(health, speed, dmg);
+        e.Init(health, speed, dmg, coins);
         return e;
     }
 
-    /// <summary>Inicializa stats. Se llama tras AddComponent (no en Awake) para
-    /// que los valores ya estén asignados cuando se fija la vida.</summary>
-    public void Init(float hp, float spd, float dmg)
+    public void Init(float hp, float spd, float dmg, int coins)
     {
         maxHealth = hp;
         Health = hp;
         moveSpeed = spd;
         contactDamage = dmg;
+        coinValue = coins;
     }
 
     void OnEnable() => All.Add(this);
     void OnDisable() => All.Remove(this);
 
-    void Start()
+    void Start() => TryAcquireTarget();
+
+    void TryAcquireTarget()
     {
-        if (GameManager.Instance != null && GameManager.Instance.Player != null)
-            target = GameManager.Instance.Player.transform;
+        var gm = GameManager.Instance;
+        if (gm != null && gm.Player != null)
+            target = gm.Player.transform;
     }
 
     void Update()
     {
-        if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing)
-            return;
+        var gm = GameManager.Instance;
+        if (gm == null || gm.State != GameState.Playing) return;
 
-        // El jugador puede no existir aún en el primer frame; reintenta.
-        if (target == null && GameManager.Instance.Player != null)
-            target = GameManager.Instance.Player.transform;
+        if (target == null) TryAcquireTarget();
 
         if (target != null)
         {
@@ -77,7 +80,6 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    /// <summary>Recibe daño de una bala. Al llegar a 0 muere y suma al marcador.</summary>
     public void TakeDamage(float damage)
     {
         Health -= damage;
@@ -89,6 +91,8 @@ public class Enemy : MonoBehaviour
     {
         if (GameManager.Instance != null)
             GameManager.Instance.AddKill();
+
+        Pickup.SpawnCoin(transform.position, coinValue);
         Destroy(gameObject);
     }
 
@@ -98,7 +102,7 @@ public class Enemy : MonoBehaviour
         if (player != null)
         {
             player.TakeDamage(contactDamage);
-            Destroy(gameObject); // el zombie "alcanza" al jugador y se consume
+            Destroy(gameObject); // alcanza al jugador y se consume (sin soltar moneda)
         }
     }
 }

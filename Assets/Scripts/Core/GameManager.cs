@@ -21,6 +21,8 @@ public class GameManager : MonoBehaviour
 
     public GameState State { get; private set; } = GameState.Playing;
     public int Kills { get; private set; }
+    public int Coins { get; private set; }      // monedas de la run actual
+    public int CurrentWave { get; set; } = 1;   // la fija el EnemySpawner
     public float RunTime { get; private set; }
 
     /// <summary>Referencia al jugador activo (la asigna el propio PlayerController).</summary>
@@ -46,6 +48,9 @@ public class GameManager : MonoBehaviour
 
     /// <summary>Suma una baja al marcador (la llama Enemy al morir).</summary>
     public void AddKill() => Kills++;
+
+    /// <summary>Suma monedas a la run (las llaman los pickups al recogerse).</summary>
+    public void AddCoins(int amount) => Coins += amount;
 
     /// <summary>Pasa la partida a game over (la llama el jugador al morir).</summary>
     public void OnPlayerDied()

@@ -31,15 +31,17 @@ public class Hud : MonoBehaviour
 
         float hp = gm.Player != null ? gm.Player.Health : 0f;
         GUI.Label(new Rect(12, 10, 400, 30), $"Vida: {hp:0}", label);
-        GUI.Label(new Rect(12, 38, 400, 30), $"Kills: {gm.Kills}", label);
-        GUI.Label(new Rect(12, 66, 400, 30), $"Tiempo: {gm.RunTime:0}s", label);
+        GUI.Label(new Rect(12, 38, 400, 30), $"Oleada: {gm.CurrentWave}", label);
+        GUI.Label(new Rect(12, 66, 400, 30), $"Monedas: {gm.Coins}", label);
+        GUI.Label(new Rect(12, 94, 400, 30), $"Kills: {gm.Kills}", label);
 
         if (gm.State == GameState.GameOver)
         {
             float w = Screen.width, h = Screen.height;
-            GUI.Label(new Rect(0, h * 0.34f, w, 60), "GAME OVER", big);
-            GUI.Label(new Rect(0, h * 0.48f, w, 40), $"Kills: {gm.Kills}    Tiempo: {gm.RunTime:0}s", small);
-            GUI.Label(new Rect(0, h * 0.56f, w, 40), "Toca o haz clic para reintentar", small);
+            GUI.Label(new Rect(0, h * 0.32f, w, 60), "GAME OVER", big);
+            GUI.Label(new Rect(0, h * 0.46f, w, 40), $"Oleada {gm.CurrentWave}    ·    {gm.Coins} monedas", small);
+            GUI.Label(new Rect(0, h * 0.53f, w, 40), $"Kills: {gm.Kills}    Tiempo: {gm.RunTime:0}s", small);
+            GUI.Label(new Rect(0, h * 0.62f, w, 40), "Toca o haz clic para reintentar", small);
 
             if (Input.GetMouseButtonDown(0) || Input.touchCount > 0)
                 gm.Restart();
