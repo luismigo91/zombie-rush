@@ -1,7 +1,7 @@
 ## 1. Preparación y red de seguridad
 
 - [x] 1.1 Etiquetar el estado actual: `git tag pre-zombie-rush` (rollback al juego anterior)
-- [ ] 1.2 Crear un sistema de pooling reutilizable (balas, unidades, zombies) — APLAZADO al slice: el fuego por streams ya acota las balas; el pooling es de la fase de rendimiento
+- [x] 1.2 Pooling de balas (`Bullet` con pool estático, fase 6). Unidades/zombies (menos numerosos) sin poolear de momento
 - [x] 1.3 Decidir dónde vive el vertical slice (se reescribe `GameBootstrap` en la escena `Game`)
 
 ## 2. Vertical slice — loop jugable mínimo (squad + disparo recto + scroll + 1:1)
@@ -41,8 +41,8 @@
 
 ## 6. Rendimiento y balance
 
-- [ ] 6.1 Asegurar pooling de unidades, balas y zombies; decidir punto de corte "una bala por unidad" vs fuego agregado perfilando en el Pixel
-- [ ] 6.2 Tunear balance: vida de zombies, cadencia, valores de gates y longitud de nivel
+- [x] 6.1 Pooling de balas (`Bullet`); decidido fuego por streams (no una bala por unidad). Pooling de unidades/zombies + perfilado en el Pixel: pendiente si hace falta
+- [ ] 6.2 Tunear balance (vida zombies, cadencia, valores de gates, longitud, tope de ancho) ← requiere playtest
 
 ## 7. Rename a Zombie Rush
 

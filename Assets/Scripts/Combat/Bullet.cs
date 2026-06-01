@@ -1,45 +1,67 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Proyectil: se mueve en línea recta en la dirección con la que nace y aplica
-/// daño al primer enemigo que toca, destruyéndose. Tiene vida máxima para que
-/// las balas que no impactan no se acumulen.
+/// Proyectil del escuadrón: viaja recto y daña al primer "disparable" (zombie,
+/// jaula o barrera) que toca. Tiene vida máxima para que las balas que no impactan
+/// no se acumulen.
 ///
-/// Se crea por código con Bullet.Spawn (enfoque code-first de la fase gris).
-/// Cuando haya muchas balas en pantalla, aquí entrará el object pooling (Fase 4).
+/// Usa un POOL estático (se reactiva en vez de instanciar/destruir) porque el
+/// escuadrón dispara muchas balas. El pool tolera la recarga de escena: las balas
+/// destruidas por Unity quedan como referencias nulas y se descartan al sacarlas.
 /// </summary>
 public class Bullet : MonoBehaviour
 {
+    static readonly Stack<Bullet> pool = new Stack<Bullet>();
+
     Vector2 dir;
     float speed;
     float damage;
-    float life = 1.4f; // segundos antes de autodestruirse (acota balas sin pooling)
+    float life;
 
-    /// <summary>Crea una bala en pos, viajando hacia dir, con la velocidad y daño dados.</summary>
+    /// <summary>Saca una bala del pool (o crea una) y la lanza desde pos hacia dir.</summary>
     public static Bullet Spawn(Vector3 pos, Vector2 dir, float speed, float damage)
     {
-        GameObject go = Prims.MakeSprite("Bullet", PixelArt.Bullet, Color.white, new Vector2(0.28f, 0.45f), pos, sortingOrder: 5);
+        Bullet b = null;
+        while (pool.Count > 0)
+        {
+            b = pool.Pop();
+            if (b != null) break; // descarta nulos (destruidos por recarga de escena)
+            b = null;
+        }
 
-        var col = go.AddComponent<BoxCollider2D>();
-        col.isTrigger = true;
+        if (b == null)
+        {
+            GameObject go = Prims.MakeSprite("Bullet", PixelArt.Bullet, Color.white,
+                new Vector2(0.28f, 0.45f), pos, sortingOrder: 5);
 
-        var rb = go.AddComponent<Rigidbody2D>();
-        rb.bodyType = RigidbodyType2D.Kinematic;
-        rb.gravityScale = 0f;
-        // Necesario para que un cuerpo cinemático detecte triggers contra otros
-        // cinemáticos/estáticos (enemigos). Sin esto no salta OnTriggerEnter2D.
-        rb.useFullKinematicContacts = true;
+            var col = go.AddComponent<BoxCollider2D>();
+            col.isTrigger = true;
 
-        var b = go.AddComponent<Bullet>();
+            var rb = go.AddComponent<Rigidbody2D>();
+            rb.bodyType = RigidbodyType2D.Kinematic;
+            rb.gravityScale = 0f;
+            rb.useFullKinematicContacts = true;
+
+            b = go.AddComponent<Bullet>();
+        }
+
         b.dir = dir;
         b.speed = speed;
         b.damage = damage;
+        b.life = 1.4f;
 
-        // Orienta el rectángulo de la bala en la dirección de avance (estético).
         float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
-        go.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+        b.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, 0f, angle));
+        if (!b.gameObject.activeSelf) b.gameObject.SetActive(true);
 
         return b;
+    }
+
+    void Despawn()
+    {
+        gameObject.SetActive(false);
+        pool.Push(this);
     }
 
     void Update()
@@ -47,19 +69,17 @@ public class Bullet : MonoBehaviour
         transform.position += (Vector3)(dir * speed * Time.deltaTime);
 
         life -= Time.deltaTime;
-        if (life <= 0f)
-            Destroy(gameObject);
+        if (life <= 0f) Despawn();
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        // Daña a cualquier "disparable": zombie, jaula o barrera.
         var hit = other.GetComponent<IShootable>();
         if (hit != null)
         {
             hit.TakeHit(damage);
             Sfx.Hit();
-            Destroy(gameObject);
+            Despawn();
         }
     }
 }
