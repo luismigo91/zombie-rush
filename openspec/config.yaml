@@ -1,0 +1,36 @@
+schema: spec-driven
+
+# Project context — se muestra a la IA al crear artefactos (propuestas, specs, tareas).
+context: |
+  Proyecto: Zombie Dash — juego móvil arcade 2D "dodge & shoot" en Unity.
+  Documentación de diseño/roadmap en Notion ("Zombie Dash — MVP", fases F0–F6).
+
+  Stack:
+    - Unity 6000.4.9f1, C#, plantilla 2D, Built-in Render Pipeline.
+    - Target Android (build de APK por CLI: BuildAndroid.BuildAPK, IL2CPP + ARM64, orientación vertical).
+    - Input Manager clásico (UnityEngine.Input): ratón en editor, tacto en móvil.
+
+  Arquitectura (code-first, placeholder-first):
+    - GameBootstrap (escena Game) y MenuBootstrap (escena MainMenu) montan TODO por código;
+      no se cablean prefabs en el editor durante esta fase.
+    - UI provisional con IMGUI (OnGUI): Hud y MenuUI. Pendiente migrar a uGUI.
+    - FX, audio (Sfx, Music) y sprites (PixelArt) se generan por código, sin assets externos.
+    - Singletons sencillos: GameManager. Enemigos en lista estática Enemy.All.
+
+  Datos (data-driven):
+    - ScriptableObjects en Assets/Resources: Enemies (EnemyData), Waves (WaveData), Upgrades (UpgradeData).
+    - Se generan/regeneran con el menú de editor "Zombie Dash → Crear datos de juego" (CreateGameData),
+      cuya fuente de verdad es la tabla Upgrades.Defaults. No editar los .asset a mano salvo para tunear.
+
+  Persistencia: PlayerPrefs vía clases estáticas Economy (monedas), Upgrades (niveles) y Weapons (armas).
+
+  Convenciones:
+    - Código y comentarios en español; identificadores y términos técnicos en su forma original.
+    - Filosofía: empezar simple, iterar, nada de arquitectura prematura ni pulido antes de validar el loop.
+    - Cada cambio jugable se compila a APK y se prueba en dispositivo real (Pixel) por adb.
+    - Git: repo en GitHub (luismigo91/zombie-dash, privado), rama main; commit por hito.
+
+# Reglas por artefacto (opcional). Ejemplo:
+#   rules:
+#     proposal:
+#       - Mantén las propuestas concisas; incluye una sección "Fuera de alcance".
