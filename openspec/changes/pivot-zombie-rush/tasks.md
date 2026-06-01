@@ -22,18 +22,19 @@
 - [ ] 3.2 Elección por alineación: el escuadrón cruza el gate del carril con el que está alineado
 - [ ] 3.3 Jaulas de supervivientes: liberar → suma unidades al recuento
 - [ ] 3.4 Barreras destructibles con vida que bloquean hasta ser derribadas a tiros
+- [ ] 3.5 Gate de arma: sube el tier del arma global durante el nivel (eje de calidad)
 
 ## 4. Generación procedural de niveles (capacidad `level-flow`)
 
-- [ ] 4.1 Modelo `LevelDefinition` (secuencia de eventos del recorrido ordenados por distancia)
-- [ ] 4.2 `GenParams` (ScriptableObject) + curva de dificultad por índice (1..100); decidir si hay niveles-jefe especiales
-- [ ] 4.3 Generador determinista `(índice, semilla)` con `System.Random` (no `Random.value`)
-- [ ] 4.4 Encadenar 100 niveles: clímax (jefe/horda), avance al siguiente y selección de nivel
-- [ ] 4.5 Verificar determinismo: mismo índice + semilla → misma disposición
+- [ ] 4.1 Modelo `LevelDefinition` (encuentros por distancia) + tabla de ~8-12 *trozos* de encuentro reutilizables
+- [ ] 4.2 `GenParams` (ScriptableObject): presupuestos `D(n)` (amenaza) y `G(n)` (crecimiento) por nivel
+- [ ] 4.3 Generador híbrido determinista: encadena trozos escalados por `D/G` e intercala amenaza/recompensa en onda; semilla GLOBAL constante (100 niveles fijos), `seed = f(global, n)`, nunca `Random.value`
+- [ ] 4.4 Macro-estructura por actos de 10: acto 1 introduce mecánicas de una en una (tutorial implícito); nivel-jefe cada 10
+- [ ] 4.5 Verificar determinismo (mismo n → misma disposición) y que cada nivel sea superable desde el punto de partida MÍNIMO
 
 ## 5. Meta-tienda reorientada (capacidad `meta-shop`)
 
-- [ ] 5.1 Reemplazar `Upgrades`/`UpgradeData` (% stats) por compras de punto de partida: unidades iniciales, arma base, rendimiento de gates (resolver el papel de pistola/escopeta)
+- [ ] 5.1 Reemplazar `Upgrades`/`UpgradeData` (% stats) por compras de punto de partida: unidades iniciales, arma base (tier inicial del arma global; pistola/escopeta como tiers) y rendimiento de gates
 - [ ] 5.2 Aplicar el punto de partida al inicio de cada nivel (reset del escuadrón)
 - [ ] 5.3 Migración PlayerPrefs: limpiar keys `upg_*`, conservar `coins`
 - [ ] 5.4 Actualizar `MenuUI` al catálogo nuevo; mantener `Economy` (banco) funcionando

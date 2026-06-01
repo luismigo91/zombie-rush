@@ -21,22 +21,34 @@ Las capacidades a cubrir están en `specs/`: `squad`, `enemies-combat`, `course-
 
 ## Decisions
 
-### 1. Representación del escuadrón: GameObjects agrupados + pooling
+### 1. Representación y geometría del escuadrón: GameObjects + pooling, formación disco/blob (√N)
 Cada soldado es un GameObject ligero (sprite primitivo) gestionado por un `SquadController` que mantiene el recuento y recoloca la formación. El recuento de unidades es la **fuente de verdad**; los GameObjects son su representación visual, tomados de un pool.
-- **Alternativa descartada (de momento)**: un único objeto "blob" con número abstracto y proxies puramente visuales. Más eficiente pero menos legible para iterar; se reconsiderará si el rendimiento lo exige.
-- **Por qué**: code-first y legible para un proyecto en validación; el pool acota el coste.
 
-### 2. Presupuesto de balas: pooling + fuego agregado si hace falta
-Las balas salen de un pool. Si N unidades × cadencia genera demasiados proyectiles en móvil, el fuego se **agrega** (p. ej. solo dispara una franja representativa del frente, o el daño/anchura escala con el recuento sin una bala por soldado).
-- **Por qué**: el feel de "muro de balas" no requiere una bala literal por soldado; desacoplar fuego de recuento es la palanca de rendimiento clave.
+**Formación: disco/blob.** Las unidades se distribuyen en un disco cuyo **ancho (diámetro) crece con √N hasta un tope** (~70-80% del ancho jugable). Mientras el ancho no llega al tope, más unidades = más cobertura horizontal de fuego; superado el tope, el ancho se mantiene y el exceso de unidades **aumenta la densidad** por columna (ver decisión 2). Las bajas erosionan el blob **por el frente** (se elimina la unidad más adelantada de la columna impactada), de donde emerge el escudo de la fila delantera. El movimiento lateral usa un suavizado ligero (cada soldado persigue su hueco) para dar sensación de masa viva.
+- **Alternativas descartadas**: *banda* (ancho ∝ N) → se sale de pantalla a N grande; *rejilla rígida* → no se siente multitud; *cuña* → frente demasiado estrecho. El disco ∝ √N crece suave, se mantiene en pantalla y da erosión legible.
+- **Por qué GameObjects+pool**: code-first y legible para iterar; el pool acota el coste. Se reconsideraría un blob abstracto con proxies solo si el rendimiento lo exige.
+
+### 2. Fuego por columna ocupada con densidad (resuelve el presupuesto de balas)
+El escuadrón **no dispara una bala por soldado**: emite fuego **por columna ocupada del blob**, y el daño/cadencia de cada columna **escala con cuántas unidades hay detrás** en esa columna (la densidad). Las balas salen de un pool.
+- **Por qué**: con la formación disco ∝ √N muchos soldados comparten columna; una bala por soldado sería redundante y cara. El "muro de balas" se siente igual y el coste queda acotado al nº de columnas, no al nº de soldados. Esto ata la geometría (decisión 1) con el rendimiento.
 
 ### 3. Scroll del mundo reutilizando el modelo actual "todo cae hacia el jugador"
 El escuadrón permanece abajo; los elementos del recorrido y los zombies se desplazan hacia él, igual que hoy caen los enemigos en `EnemySpawner`. Un `LevelRunner` consume una `LevelDefinition` (secuencia ordenada por distancia) y va instanciando gates/jaulas/barreras/hordas a medida que "avanza" el nivel.
 - **Por qué**: minimiza el cambio respecto al código actual y evita mover cámara/mundo real.
 
-### 4. Generación procedural determinista
-Un generador toma `(índiceNivel, semilla)` y produce una `LevelDefinition` con `System.Random` sembrado (no `Random.value`, para garantizar determinismo). La dificultad es función del índice (1..100) a partir de parámetros en un ScriptableObject (`GenParams`): densidad de hordas, fuerza de gates, frecuencia de jaulas/barreras, tipo de clímax.
-- **Por qué**: 100 niveles a mano es inviable; determinismo permite reproducir y depurar un nivel.
+### 4. Generación procedural: híbrido de trozos, 100 niveles fijos, jefes cada 10
+Un generador toma `(n, semillaGlobal)` y produce una `LevelDefinition` (secuencia de encuentros ordenados por distancia) de forma **determinista** con `System.Random` sembrado por nivel (`seed = f(semillaGlobal, n)`, nunca `Random.value`). La **semilla global es constante** → los 100 niveles son **fijos**: una campaña que todos juegan igual, se puede balancear y comentar (no un re-roll por partida).
+
+**Enfoque híbrido (gramática de trozos).** Se diseñan ~8-12 *trozos* de encuentro con buen ritmo interno (p. ej. "encrucijada de gates dobles", "sala de rescate con horda", "embudo de tanques", "pasillo de barreras"). El generador **encadena** trozos elegidos según dificultad y **escala sus parámetros internos** con dos presupuestos por nivel:
+- `D(n)` = presupuesto de **amenaza** (zombies, dureza de barreras, % de gates-trampa).
+- `G(n)` = presupuesto de **crecimiento** (gates +/×, jaulas).
+
+La dificultad percibida ≈ `D(n)/G(n)`. Amenaza y recompensa se **intercalan en onda** (tensión → alivio → tensión mayor → clímax), no de forma uniforme. Presupuestos y tabla de trozos viven en un ScriptableObject `GenParams`.
+
+**Macro-estructura por actos de 10.** El acto 1 (niveles 1-10) introduce las mecánicas **de una en una** (gates → jaulas → barreras → tanques → primer jefe), como **tutorial implícito** sin texto. Cada 10 niveles hay un **nivel-jefe** especial (hito). La curva `D(n)` sube **escalonada por acto**, no en recta.
+
+**Balancear contra el punto de partida MÍNIMO.** Como el escuadrón reinicia cada nivel y los gates son el gran ecualizador, los niveles MUST ser superables desde el punto de partida base (sin compras). Lo comprado en la meta-tienda da **margen**, no es requisito.
+- **Por qué**: 100 niveles a mano es inviable; el híbrido da ritmo diseñado + escalado automático; el determinismo permite reproducir/depurar un nivel concreto; los presupuestos `D/G` dan una sola palanca de dificultad.
 
 ### 5. Meta-tienda reorientada (reusa `Economy`, reemplaza `Upgrades`)
 `Economy` (banco de monedas en PlayerPrefs) se mantiene. Las mejoras de % (`Upgrades`/`UpgradeData`) se **reemplazan** por compras de punto de partida (unidades iniciales, arma base, rendimiento de gates) persistidas en PlayerPrefs. `Weapons` se conserva/adapta como "arma base" del escuadrón.
@@ -52,7 +64,18 @@ El contacto zombie↔escuadrón se resuelve con un trigger en el frente del blob
 - **Nuevo**: `SquadController`, `LevelRunner`, generador + `LevelDefinition`/`GenParams`, gates, barreras, jaulas, sistema de pooling.
 - **Reusa tal cual**: `Prims`/`PixelArt`/`FX`/`Sfx`/`Music`, patrón ScriptableObject en `Assets/Resources`.
 
-### 8. Rename Zombie Dash → Zombie Rush
+### 8. Armas: arma global del escuadrón por tiers (segundo eje de crecimiento)
+El arma es **global al escuadrón**, no por unidad: todos los soldados disparan el mismo arma activa y el **daño/cadencia por columna escala con la densidad** (decisión 2). El arma tiene **tiers** (pistola → … → escopeta) que varían daño/cadencia/perforación manteniendo el **fuego hacia el frente** (sin auto-aim). Pistola y escopeta actuales sobreviven como tiers (la escopeta = tier alto con más cobertura/perforación, reusando el código existente).
+
+Esto introduce un **segundo eje de crecimiento** en la run, además de la cantidad de unidades:
+- **Cantidad** (nº de soldados) → ancho/densidad → cobertura y DPS bruto. Crece con gates +/× y jaulas.
+- **Calidad** (tier de arma) → potencia por disparo. Crece con **gates de arma** (un tipo de gate que sube el tier durante el nivel) y con el arma base comprada en la meta-tienda (punto de partida).
+
+La decisión por segundo se enriquece: a veces el jugador elige entre un gate de "+unidades" y uno de "subir arma" (ensanchar el muro vs mejorar cada disparo). El presupuesto de crecimiento `G(n)` del generador reparte entre ambos ejes.
+- **Alternativa descartada (arma por unidad)**: un escuadrón con armas mezcladas rompe el "fuego por columna con densidad" (¿qué dispara una columna mixta?), reintroduce el problema de presupuesto de balas y añade microgestión (perder un soldado "valioso"). Demasiada complejidad antes de validar el core; se podría explorar tras el MVP.
+- **Por qué**: encaja con la densidad ya decidida, reusa pistola/escopeta, mantiene el escuadrón legible y **cumple la petición original de "mejorar las armas en la misma run"** como eje ortogonal a las unidades.
+
+### 9. Rename Zombie Dash → Zombie Rush
 Actualizar README, CLAUDE.md, `PlayerSettings` (`productName`, `applicationIdentifier` → `com.luismiguel.zombierush`), nombres visibles y doc de Notion. Como la app **no está publicada**, cambiar el package id no rompe actualizaciones.
 
 ## Risks / Trade-offs
@@ -76,8 +99,5 @@ Por fases, cada una compilable y jugable (filosofía del proyecto):
 
 ## Open Questions
 
-- **Formación del blob**: geometría exacta (¿círculo/“pila”/rejilla suelta?) y cómo se mapea recuento → ancho y → orden de bajas.
-- **Generador**: parámetros concretos y forma de la curva de dificultad a lo largo de 100 niveles; ¿niveles-jefe especiales cada N?
-- **Armas**: ¿sobreviven pistola/escopeta y cómo encajan con "unidades" (arma global del escuadrón vs por unidad)?
-- **Balance numérico**: vida de zombies, cadencia, valores de gates, longitud de nivel.
-- **Presupuesto de balas**: ¿una bala por unidad hasta cierto N y luego fuego agregado? Punto de corte a perfilar en dispositivo.
+- **Balance numérico** (tuning, no arquitectura): vida de zombies, cadencia, valores de gates, longitud de nivel, tope de ancho del blob, tiers de arma, y la forma concreta de las curvas `D(n)`/`G(n)` + diseño de los ~8-12 trozos del generador.
+- **Tuning de formación**: factor exacto de √N, suavizado del movimiento y nº de columnas de disparo (a perfilar en dispositivo).

@@ -33,6 +33,20 @@ Un gate SHALL aplicar un efecto sobre el recuento de unidades al cruzarse. Los e
 - **WHEN** el escuadrón cruza un gate de tipo trampa
 - **THEN** el recuento se reduce según el valor del gate
 
+### Requirement: Gate de arma
+
+Además de los gates que afectan al recuento, el recorrido SHALL incluir gates que **suben el tier del arma global** del escuadrón durante el nivel. Representan el eje de crecimiento de *calidad* (frente al de *cantidad*).
+
+#### Scenario: Subir el arma
+
+- **WHEN** el escuadrón cruza un gate de arma
+- **THEN** el arma activa sube un tier (p. ej. pistola → escopeta) para el resto del nivel
+
+#### Scenario: Elegir entre cantidad y calidad
+
+- **WHEN** un gate de arma comparte el cruce con un gate de cantidad (+/×) en otro carril
+- **THEN** el jugador elige entre ensanchar el muro (más unidades) o mejorar cada disparo (mejor arma)
+
 ### Requirement: Jaulas de supervivientes
 
 El recorrido SHALL contener jaulas con supervivientes que, al liberarse, se incorporan al escuadrón como unidades nuevas.
