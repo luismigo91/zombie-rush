@@ -19,6 +19,7 @@ public class GameBootstrap : MonoBehaviour
     void Awake()
     {
         SetupCamera();
+        Music.Play();
 
         // GameManager primero: su Awake fija Instance de inmediato, así el resto
         // de componentes ya lo encuentran.

@@ -24,6 +24,8 @@ public class MenuBootstrap : MonoBehaviour
         if (cam.GetComponent<AudioListener>() == null)
             cam.gameObject.AddComponent<AudioListener>();
 
+        Music.Play();
+
         new GameObject("MenuUI").AddComponent<MenuUI>();
     }
 }

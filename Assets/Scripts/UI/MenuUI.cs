@@ -51,8 +51,16 @@ public class MenuUI : MonoBehaviour
             y += rowH + 12 * u;
         }
 
-        // --- Reiniciar progreso (pruebas) ---
+        // --- Música on/off ---
         float rw = w * 0.5f, rh = 70 * u;
+        string mLabel = Music.Muted ? "Música: OFF" : "Música: ON";
+        if (GUI.Button(new Rect((w - rw) * 0.5f, h - rh * 2f - 36 * u, rw, rh), mLabel, smallBtn))
+        {
+            Sfx.Click();
+            Music.Muted = !Music.Muted;
+        }
+
+        // --- Reiniciar progreso (pruebas) ---
         if (GUI.Button(new Rect((w - rw) * 0.5f, h - rh - 24 * u, rw, rh), "Reiniciar progreso", smallBtn))
             Upgrades.ResetAll();
     }
