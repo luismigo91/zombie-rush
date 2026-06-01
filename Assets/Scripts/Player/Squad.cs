@@ -22,8 +22,8 @@ public class Squad : MonoBehaviour
     public int startCount = 8;          // punto de partida (luego lo fijará la meta-tienda)
 
     [Header("Formación (disco √N)")]
-    public float baseRadius = 0.22f;    // factor del radio: r = baseRadius * √N (menor = más pegados)
-    public float maxRadius = 1.5f;      // tope de ancho: al superarlo, el exceso aumenta la densidad
+    public float baseRadius = 0.16f;    // factor del radio: r = baseRadius * √N (menor = más concentrados)
+    public float maxRadius = 1.1f;      // tope de ancho: al superarlo, el exceso aumenta la densidad
     public float unitSize = 0.32f;      // tamaño de cada soldado (se solapan un poco = multitud compacta)
     public float follow = 16f;          // suavizado con el que cada unidad va a su hueco (mayor = más cohesión)
 

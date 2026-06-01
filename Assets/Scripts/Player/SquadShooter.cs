@@ -20,6 +20,7 @@ public class SquadShooter : MonoBehaviour
     public float bulletSpeed = 16f;
     public float streamSpacing = 0.42f;
     public int maxStreams = 11;
+    public float fireConcentration = 0.6f; // fracción del ancho del blob donde se concentra el fuego
 
     Squad squad;
     float cooldown;
@@ -45,8 +46,9 @@ public class SquadShooter : MonoBehaviour
         int n = squad.Count;
         if (n <= 0) return;
 
-        float width = squad.Width;
-        int streams = Mathf.Clamp(Mathf.RoundToInt(width / streamSpacing) + tier.extraStreams, 1, maxStreams);
+        // El fuego se concentra en el centro del blob (no en los bordes).
+        float fireWidth = squad.Width * fireConcentration;
+        int streams = Mathf.Clamp(Mathf.RoundToInt(fireWidth / streamSpacing) + tier.extraStreams, 1, maxStreams);
         streams = Mathf.Min(streams, n);
 
         float damagePerStream = baseDamage * tier.damageMult * n / streams;
@@ -57,7 +59,7 @@ public class SquadShooter : MonoBehaviour
         {
             float fx = streams == 1
                 ? 0f
-                : Mathf.Lerp(-width * 0.5f, width * 0.5f, k / (streams - 1f));
+                : Mathf.Lerp(-fireWidth * 0.5f, fireWidth * 0.5f, k / (streams - 1f));
             Bullet.Spawn(new Vector3(cx + fx, y, 0f), Vector2.up, bulletSpeed, damagePerStream);
         }
 
