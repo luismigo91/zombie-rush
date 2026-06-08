@@ -22,6 +22,7 @@ public class FloatingTextManager : MonoBehaviour
 
     readonly List<Item> items = new List<Item>();
     Camera cam;
+    static GUIStyle _itemStyle; // cacheado entre frames (evita GC churn en OnGUI)
 
     void Awake()
     {
@@ -62,15 +63,15 @@ public class FloatingTextManager : MonoBehaviour
             Vector3 sp = cam.WorldToScreenPoint(it.world);
             if (sp.z < 0f) continue; // detrás de la cámara
 
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = Mathf.Max(10, (int)(it.size * u)),
-                alignment = TextAnchor.MiddleCenter,
-                fontStyle = FontStyle.Bold
-            };
+            // Estilo cacheado: con hordas grandes hay decenas de números a la vez;
+            // crear un GUIStyle por item y frame generaba GC churn cada frame.
+            if (_itemStyle == null)
+                _itemStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+            _itemStyle.fontSize = Mathf.Max(10, (int)(it.size * u));
             Color c = it.color;
             c.a = 1f - (it.age / it.life);
-            style.normal.textColor = c;
+            _itemStyle.normal.textColor = c;
+            var style = _itemStyle;
 
             float w = 140f * u, h = 44f * u;
             // GUI usa Y=0 arriba; WorldToScreenPoint usa Y=0 abajo.

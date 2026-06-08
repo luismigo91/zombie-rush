@@ -42,6 +42,10 @@ public static class BuildAndroid
         // Queremos un APK instalable directamente (no un AAB de Play).
         EditorUserBuildSettings.buildAppBundle = false;
 
+        // Icono, splash y versión generados por código (look de app publicable).
+        // Se aplica antes de BuildPlayer para que viajen dentro del APK.
+        AppIconGen.Apply();
+
         Directory.CreateDirectory("Builds");
         string apkPath = Path.Combine("Builds", "ZombieRush.apk");
 

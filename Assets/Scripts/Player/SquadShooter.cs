@@ -68,18 +68,22 @@ public class SquadShooter : MonoBehaviour
                 float fx = streams == 1
                     ? 0f
                     : Mathf.Lerp(-fireWidth * 0.5f, fireWidth * 0.5f, k / (streams - 1f));
-                Bullet.Spawn(new Vector3(cx + fx, y, 0f), Vector2.up, bulletSpeed, damagePerStream);
+                var boca = new Vector3(cx + fx, y, 0f);
+                Bullet.Spawn(boca, Vector2.up, bulletSpeed, damagePerStream);
+                Vfx.Muzzle(boca); // fogonazo de boca en cada columna
                 firedAny = true;
             }
 
             timers[k] = interval * Random.Range(0.8f, 1.2f); // jitter → descoordinación continua
         }
 
-        // Sonido limitado (si no, sería un zumbido continuo).
+        // Sonido + animación de disparo + haptic, limitados (si no, sería un zumbido continuo).
         sfxCd -= Time.deltaTime;
         if (firedAny && sfxCd <= 0f)
         {
             Sfx.Shoot();
+            squad.PlayShootAnim(3); // retroceso/fogonazo en unas pocas unidades
+            Haptics.Light();        // micro-vibración al disparar (respeta ajustes)
             sfxCd = 0.07f;
         }
     }

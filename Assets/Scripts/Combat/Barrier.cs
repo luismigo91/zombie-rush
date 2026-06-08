@@ -70,6 +70,8 @@ public class Barrier : MonoBehaviour, IShootable
             int penalty = Mathf.CeilToInt(health / Mathf.Max(1f, maxHealth) * 8f) * penaltyPerHealth;
             squad.RemoveFront(penalty); // la barrera intacta arrasa parte del frente
             CameraShake.Shake(0.18f, 0.2f);
+            Vfx.HitStop(0.05f);         // golpe gordo: micro-pausa
+            Haptics.Heavy();
             Destroy(gameObject);
         }
     }

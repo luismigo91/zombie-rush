@@ -46,16 +46,37 @@ public class Enemy : MonoBehaviour, IShootable
 
         var e = go.AddComponent<Enemy>();
         e.Init(health, speed, dmg, coins);
+
+        // Animación de arrastre (grises tintables → el color por tipo sigue tiñendo
+        // todos los frames). El offset de fase evita que la horda marche sincronizada.
+        SpriteAnim.Play(go, PixelArt.ZombieShamble, 4f, true);
+        // Pop de escala al aparecer.
+        Vfx.Pop(go.transform);
         return e;
     }
 
-    /// <summary>Crea un mini-jefe: un zombie enorme, con mucha vida y recompensa.</summary>
+    /// <summary>Crea un mini-jefe: silueta propia masiva, con mucha vida y recompensa.</summary>
     public static Enemy SpawnBoss(Vector3 pos, float hp)
     {
         var e = Spawn(pos, hp, 1.3f, 40f, 30, new Color(0.45f, 0.70f, 0.20f), new Vector2(1.7f, 1.7f));
         e.isBoss = true;
+
         var srr = e.GetComponent<SpriteRenderer>();
-        if (srr != null) srr.sortingOrder = 2;
+        if (srr != null)
+        {
+            srr.sortingOrder = 2;
+            // Sprite dedicado de jefe (color final propio): se pinta tal cual.
+            srr.sprite = PixelArt.Boss;
+            srr.color = Color.white;
+        }
+        // El jefe no usa la animación de arrastre de zombie: apagamos el SpriteAnim
+        // que Spawn dejó activo para que no machaque el sprite de jefe cada frame.
+        var anim = e.GetComponent<SpriteAnim>();
+        if (anim != null) anim.enabled = false;
+
+        // Entrada de jefe: rugido grave + sacudida fuerte.
+        Sfx.BossRoar();
+        CameraShake.Shake(0.35f, 0.4f);
         return e;
     }
 
@@ -152,9 +173,11 @@ public class Enemy : MonoBehaviour, IShootable
             GameManager.Instance.AddCoins(isBoss ? 25 : 1); // monedas de la run → banco al acabar
         }
 
-        // Estallido en el color del enemigo + sacudida de cámara + sonido.
-        HitEffect.Burst(transform.position, baseColor, 10, 6f, 0.16f, 0.35f);
-        CameraShake.Shake(0.12f, 0.18f);
+        // Gore verdoso en el tinte del zombie + micro hit-stop + sacudida + sonido.
+        Vfx.Gore(transform.position, baseColor);
+        Vfx.HitStop(isBoss ? 0.08f : 0.04f);
+        CameraShake.Shake(isBoss ? 0.3f : 0.12f, isBoss ? 0.3f : 0.18f);
+        if (isBoss) Haptics.Heavy(); else Haptics.Light();
         Sfx.Death();
 
         // (Las monedas/economía se reintroducen en la fase de meta-tienda.)

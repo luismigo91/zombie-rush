@@ -30,6 +30,9 @@ public class Squad : MonoBehaviour
     [Header("Movimiento")]
     public float moveMultiplier = 1f;   // sensibilidad del arrastre
 
+    [Header("Crecimiento")]
+    public float growInterval = 0.035f; // tiempo entre apariciones (efecto "de uno en uno")
+
     public int Count => units.Count;
     public float Radius { get; private set; }
     public float Width => Radius * 2f;
@@ -41,6 +44,9 @@ public class Squad : MonoBehaviour
     float minX, maxX;
     bool dragging;
     float lastPointerWorldX;
+
+    int pending;       // soldados encolados pendientes de aparecer (drip "de uno en uno")
+    float growTimer;
 
     const float GoldenAngle = 2.39996323f; // radianes
 
@@ -64,6 +70,7 @@ public class Squad : MonoBehaviour
         if (gm != null && gm.State == GameState.Playing)
             HandleDrag();
 
+        ProcessGrowth();
         Reflow(snap: false);
     }
 
@@ -140,17 +147,78 @@ public class Squad : MonoBehaviour
 
     // ---------------------------------------------------------------- recuento
 
-    /// <summary>Añade n soldados (gates/jaulas). Nacen en el centro y van a su hueco.</summary>
+    /// <summary>
+    /// Encola n soldados (gates/jaulas). NO aparecen de golpe: se sueltan de uno en
+    /// uno en ProcessGrowth para que el recuento "suba" en ráfaga y se sienta una
+    /// multitud que crece, en vez de un bloque que se planta de una vez.
+    /// </summary>
     public void Add(int n)
     {
-        for (int k = 0; k < n; k++)
+        if (n > 0) pending += n;
+    }
+
+    /// <summary>Suelta los soldados encolados poco a poco (de uno en uno). Si la cola es
+    /// enorme (gates ×N) acelera un poco para no eternizarse, pero el caso normal es 1 a 1.</summary>
+    void ProcessGrowth()
+    {
+        if (pending <= 0) return;
+
+        // No seguir creciendo una vez la partida ha terminado (victoria/derrota).
+        var gm = GameManager.Instance;
+        if (gm != null && (gm.State == GameState.GameOver || gm.State == GameState.Won)) return;
+
+        growTimer += Time.deltaTime;
+        if (growTimer < growInterval) return;
+        growTimer = 0f;
+
+        int batch = 1 + pending / 40; // 1 a 1 hasta colas grandes; entonces acelera
+        for (int k = 0; k < batch && pending > 0; k++)
         {
-            GameObject go = Prims.MakeSprite("Unit", PixelArt.Player, Color.white,
-                new Vector2(unitSize, unitSize), transform.position, sortingOrder: 2);
-            go.transform.SetParent(transform, worldPositionStays: false);
-            go.transform.localPosition = new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f), 0f);
-            units.Add(go.transform);
+            SpawnOne();
+            pending--;
         }
+    }
+
+    /// <summary>Instancia un soldado en el centro (luego va a su hueco del disco).</summary>
+    void SpawnOne()
+    {
+        GameObject go = Prims.MakeSprite("Unit", PixelArt.Player, Color.white,
+            new Vector2(unitSize, unitSize), transform.position, sortingOrder: 2);
+        go.transform.SetParent(transform, worldPositionStays: false);
+        go.transform.localPosition = new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f), 0f);
+        units.Add(go.transform);
+
+        // Animación de marcha (el offset de fase aleatorio desincroniza la formación).
+        SpriteAnim.Play(go, PixelArt.SoldierMarch, 6f, true);
+        // Pop de escala al nacer (gates/jaulas dan sensación de masa creciente).
+        Vfx.Pop(go.transform);
+    }
+
+    /// <summary>
+    /// Pulso de disparo en unas pocas unidades (la llama SquadShooter al disparar):
+    /// reproduce la animación one-shot de disparo y, al terminar, vuelve a dejar la
+    /// marcha en bucle (SpriteAnim reutiliza el mismo componente, así que sin este
+    /// reinicio el soldado se quedaría congelado en el último frame de disparo).
+    /// </summary>
+    public void PlayShootAnim(int howMany = 3)
+    {
+        int n = units.Count;
+        for (int k = 0; k < howMany && n > 0; k++)
+        {
+            Transform u = units[Random.Range(0, n)];
+            if (u != null) StartCoroutine(ShootThenMarch(u.gameObject));
+        }
+    }
+
+    /// <summary>One-shot de disparo y, al acabar, restaura la marcha en bucle.</summary>
+    System.Collections.IEnumerator ShootThenMarch(GameObject go)
+    {
+        Sprite[] shoot = PixelArt.SoldierShoot;
+        SpriteAnim.Play(go, shoot, 12f, false);
+        // Duración de la pasada (frames/fps) + un pequeño margen.
+        float dur = (shoot != null && shoot.Length > 0) ? shoot.Length / 12f + 0.02f : 0f;
+        yield return new WaitForSeconds(dur);
+        if (go != null) SpriteAnim.Play(go, PixelArt.SoldierMarch, 6f, true); // vuelve a marchar
     }
 
     /// <summary>Quita una unidad del FRENTE (la más adelantada). La llaman los zombies al contacto.</summary>

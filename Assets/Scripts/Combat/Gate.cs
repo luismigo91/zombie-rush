@@ -93,7 +93,19 @@ public class Gate : MonoBehaviour
                 Flash("ARMA+", new Color(1f, 0.85f, 0.4f));
                 break;
         }
-        Sfx.Coin();
+
+        // Sonido del gate (pliego ascendente). Las trampas usan el mismo aviso.
+        Sfx.Gate();
+        // Feedback positivo solo en gates de crecimiento (no en la trampa).
+        if (effect != GateEffect.Trap)
+        {
+            Vfx.CoinPickup(transform.position);
+            Haptics.Medium();
+        }
+        else
+        {
+            Haptics.Heavy(); // la trampa pega fuerte
+        }
     }
 
     void Flash(string text, Color color)

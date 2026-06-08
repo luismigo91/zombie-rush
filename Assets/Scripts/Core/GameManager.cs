@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 /// <summary>Estados posibles de una partida (run).</summary>
 public enum GameState
@@ -80,6 +79,9 @@ public class GameManager : MonoBehaviour
         State = GameState.GameOver;
         Economy.Add(Coins); // las monedas de la run pasan al banco
         CameraShake.Shake(0.3f, 0.3f);
+        Vfx.HitStop(0.05f); // golpe gordo de la derrota
+        Sfx.Lose();
+        Haptics.Heavy();
     }
 
     /// <summary>Victoria: se superó el nivel (clímax/recorrido completado).</summary>
@@ -89,17 +91,24 @@ public class GameManager : MonoBehaviour
         State = GameState.Won;
         Economy.Add(Coins);            // las monedas de la run pasan al banco
         Campaign.Current = Level + 1;  // avanza la campaña (cap a 100 en Campaign)
+
+        // Celebración: confeti en el centro del escuadrón + fanfarria.
+        Vector3 center = Squad != null ? Squad.transform.position : Vector3.zero;
+        Vfx.Confetti(center);
+        Sfx.Win();      // arpegio festivo (nivel-jefe o fin de recorrido)
+        Sfx.LevelUp();  // subida de nivel
+        Haptics.Medium();
     }
 
-    /// <summary>Reinicia la run (vuelve a cargar la escena de juego).</summary>
+    /// <summary>Reinicia la run (vuelve a cargar la escena de juego con fundido).</summary>
     public void Restart()
     {
-        SceneManager.LoadScene("Game");
+        SceneFade.Load("Game");
     }
 
-    /// <summary>Vuelve al menú principal (para gastar monedas en mejoras).</summary>
+    /// <summary>Vuelve al menú principal con fundido (para gastar monedas en mejoras).</summary>
     public void GoToMenu()
     {
-        SceneManager.LoadScene("MainMenu");
+        SceneFade.Load("MainMenu");
     }
 }

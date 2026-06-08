@@ -46,7 +46,9 @@ public class Cage : MonoBehaviour, IShootable
         {
             gm.Squad.Add(survivors);
             FloatingTextManager.Spawn(transform.position, "+" + survivors, new Color(0.6f, 1f, 0.6f));
-            Sfx.Coin();
+            Sfx.Gate();                              // ding ascendente de rescate
+            Vfx.CoinPickup(transform.position);      // destello de recompensa
+            Haptics.Medium();
         }
         Destroy(gameObject);
     }

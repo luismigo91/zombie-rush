@@ -77,7 +77,8 @@ public static class LevelGenerator
                 else
                 {
                     ev.type = EncounterType.Horde;
-                    ev.hordeCount = 2 + Mathf.FloorToInt(n * 0.5f) + rng.Next(0, 3 + act);
+                    // Hordas densas desde el principio (el jugador pidió "muchos más").
+                    ev.hordeCount = 10 + Mathf.FloorToInt(n * 1.1f) + rng.Next(0, 6 + act * 2);
                     ev.zombieHealth = zHp;
                     ev.zombieSpeed = zSpd;
                 }

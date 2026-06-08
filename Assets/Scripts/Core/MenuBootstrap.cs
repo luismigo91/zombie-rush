@@ -24,7 +24,11 @@ public class MenuBootstrap : MonoBehaviour
         if (cam.GetComponent<AudioListener>() == null)
             cam.gameObject.AddComponent<AudioListener>();
 
-        Music.Play();
+        // Fondo ambiental del menú (cielo+suelo con scroll lento). Sustituye el color plano.
+        Environment.BuildMenu();
+
+        Music.PlayMenu();          // variante tranquila de menú
+        SettingsStore.SyncMusic(); // respeta el flag de música guardado por la UI
 
         new GameObject("MenuUI").AddComponent<MenuUI>();
     }

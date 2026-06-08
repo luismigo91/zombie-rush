@@ -29,6 +29,10 @@ public class LevelRunner : MonoBehaviour
 
         var gm = GameManager.Instance;
         def = LevelGenerator.Generate(gm != null ? gm.Level : 1);
+
+        // Fondo del juego con la velocidad real del nivel (cielo+suelo+carriles que
+        // scrollean y casan con el avance). Idempotente: destruye un Environment previo.
+        Environment.Build(def.scrollSpeed);
     }
 
     void Update()
@@ -52,6 +56,8 @@ public class LevelRunner : MonoBehaviour
                 if (!bossSpawned)
                 {
                     bossSpawned = true;
+                    Music.PlayBoss(); // música tensa de jefe (crossfade interno)
+                    // SpawnBoss ya dispara Sfx.BossRoar() + sacudida fuerte.
                     boss = Enemy.SpawnBoss(new Vector3(0f, topY, 0f), def.bossHealth);
                 }
                 else if (boss == null) // jefe derribado
@@ -76,13 +82,33 @@ public class LevelRunner : MonoBehaviour
                 // (evita que el snowball convierta la run en un paseo).
                 int squadN = GameManager.Instance != null && GameManager.Instance.Squad != null
                     ? GameManager.Instance.Squad.Count : 0;
-                int count = Mathf.Min(50, ev.hordeCount + Mathf.FloorToInt(squadN * 0.25f));
+                int count = Mathf.Min(120, ev.hordeCount + Mathf.FloorToInt(squadN * 0.4f));
                 for (int i = 0; i < count; i++)
                 {
                     float px = Random.Range(minX, maxX);
-                    Enemy.Spawn(new Vector3(px, topY + i * 0.7f, 0f),
-                        ev.zombieHealth, ev.zombieSpeed, 1f, 0,
-                        new Color(0.85f, 0.25f, 0.25f), new Vector2(0.55f, 0.55f));
+                    // Mezcla de TIPOS para dar variedad visual y de ritmo:
+                    // normal (mayoría), runner (rápido y fino), tank (grande y lento).
+                    float roll = Random.value;
+                    Color color; float speedMul; float size; float hpMul;
+                    if (roll < 0.18f)
+                    {
+                        // tank: morado, grande, lento, más vida
+                        color = new Color(0.61f, 0.36f, 0.84f); speedMul = 0.7f; size = 0.85f; hpMul = 2.2f;
+                    }
+                    else if (roll < 0.42f)
+                    {
+                        // runner: amarillo, fino, rápido, poca vida
+                        color = new Color(0.91f, 0.78f, 0.29f); speedMul = 1.7f; size = 0.45f; hpMul = 0.7f;
+                    }
+                    else
+                    {
+                        // normal: verde enfermizo
+                        color = new Color(0.50f, 0.69f, 0.31f); speedMul = 1f; size = 0.55f; hpMul = 1f;
+                    }
+
+                    Enemy.Spawn(new Vector3(px, topY + i * 0.5f, 0f),
+                        ev.zombieHealth * hpMul, ev.zombieSpeed * speedMul, 1f, 0,
+                        color, new Vector2(size, size));
                 }
                 break;
             }

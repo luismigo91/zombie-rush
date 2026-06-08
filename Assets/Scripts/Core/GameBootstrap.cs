@@ -17,7 +17,9 @@ public class GameBootstrap : MonoBehaviour
     void Awake()
     {
         SetupCamera();
-        Music.Play();
+        Music.PlayGame();          // variante con pulso para el juego
+        SettingsStore.SyncMusic(); // respeta el flag de música guardado por la UI
+        // El fondo (Environment.Build) lo arranca LevelRunner con la scrollSpeed real del nivel.
 
         // GameManager primero: su Awake fija Instance de inmediato.
         var gm = new GameObject("GameManager").AddComponent<GameManager>();

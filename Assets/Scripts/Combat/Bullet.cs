@@ -78,6 +78,7 @@ public class Bullet : MonoBehaviour
         if (hit != null)
         {
             hit.TakeHit(damage);
+            Vfx.BulletImpact(transform.position); // chispa de impacto
             Sfx.Hit();
             Despawn();
         }
