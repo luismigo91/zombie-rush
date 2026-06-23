@@ -54,7 +54,7 @@
 - [x] 6.6 Actualizar `Enemy` para que use `ArtCache` para shamble (con tinte por tipo) y muerte si el sheet la trae; `Vfx.Gore` se superpone
 - [x] 6.7 Actualizar jefe para usar el sheet de boss (idle o estático)
 - [ ] 6.8 Compilar APK y validar animaciones + tinte en Pixel
-- [ ] 6.9 Commit "art-pass: spritesheets de personajes"
+- [x] 6.9 Commit "art-pass: spritesheets de personajes"
 
 ## 7. UI uGUI — Hud y PauseMenu (fase 6) — ✓ YA HECHO en el trabajo del pivote
 
@@ -66,8 +66,8 @@
 
 ## 8. Limpieza y cierre (fase 7)
 
-- [ ] 8.1 Eliminar de `Vfx.cs` los quads de "glow falso" que el Bloom URP ya cubre (muzzle halo, etc.); conservar partículas de gore/impact/coin/confetti
-- [ ] 8.2 Decidir sobre `PixelArt.cs`: eliminar si todos los sprites tienen reemplazo, o conservar como fallback para bala/muzzle sin asset; documentar la decisión
+- [x] 8.1 Eliminar de `Vfx.cs` los quads de "glow falso" que el Bloom URP ya cubre (muzzle halo, etc.); conservar partículas de gore/impact/coin/confetti
+- [x] 8.2 Decidir sobre `PixelArt.cs`: eliminar si todos los sprites tienen reemplazo, o conservar como fallback para bala/muzzle sin asset; documentar la decisión
 - [ ] 8.3 Compilar APK final y validar look completo en Pixel (neón, parallax, animaciones, UI)
-- [ ] 8.4 Actualizar `CLAUDE.md` para reflejar el nuevo stack (URP, LFS, `Resources/Art/`) y archivar el cambio `art-pass`
+- [x] 8.4 Actualizar `CLAUDE.md` para reflejar el nuevo stack (URP, LFS, `Resources/Art/`) y archivar el cambio `art-pass`
 - [ ] 8.5 Commit final "art-pass: cierre y limpieza"

@@ -2,9 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Zombie Rush es un juego móvil arcade 2D en **Unity 6000.4.9f1** (C#, 2D, Built-in RP), target **Android vertical**. Es un *shooter de multitud con gates* (al estilo Last Z): controlas un escuadrón que se mueve en X y dispara recto, y creces con gates/jaulas por un recorrido con scroll mientras una horda te erosiona. El usuario es buen programador pero **principiante con el editor de Unity**: al explicar, prioriza el motor (escenas, componentes, Play, build) sobre la sintaxis de C#.
+Zombie Rush es un juego móvil arcade 2D en **Unity 6000.4.9f1** (C#, 2D, **URP 2D** + Linear), target **Android vertical**. Es un *shooter de multitud con gates* (al estilo Last Z): controlas un escuadrón que se mueve en X y dispara recto, y creces con gates/jaulas por un recorrido con scroll mientras una horda te erosiona. El usuario es buen programador pero **principiante con el editor de Unity**: al explicar, prioriza el motor (escenas, componentes, Play, build) sobre la sintaxis de C#.
 
-> El proyecto pivotó desde "Zombie Dash" (un dodge & shoot de héroe único). El diseño del pivote está en `openspec/changes/pivot-zombie-rush/`; el juego anterior se conserva en el tag de git `pre-zombie-rush`.
+> El proyecto pivotó desde "Zombie Dash" (un dodge & shoot de héroe único). El diseño del pivote está archivado en `openspec/changes/archive/2026-06-23-pivot-zombie-rush/`; el juego anterior se conserva en el tag de git `pre-zombie-rush`. El cambio activo es `art-pass` (mejora estética: URP 2D, Linear, assets CC0, parallax, spritesheets, uGUI); su tag de rollback es `pre-art-pass`.
 
 ## Convención de idioma (importante)
 
@@ -26,7 +26,7 @@ Genera `Builds/ZombieRush.apk` (IL2CPP+ARM64, portrait, package `com.luismiguel.
 
 **Instalar:** `~/Library/Android/sdk/platform-tools/adb install -r Builds/ZombieRush.apk`.
 
-**Menús de editor** (`Assets/Editor/`, también por `-executeMethod`): `ZombieDashSetup.CreateGameScene`/`CreateMenuScene` (regeneran escenas), `CreateGameData.CreateData` (ScriptableObjects de enemigos/oleadas, dormantes tras el pivote).
+**Menús de editor** (`Assets/Editor/`, también por `-executeMethod`): `ZombieDashSetup.CreateGameScene`/`CreateMenuScene` (regeneran escenas), `URPSetup.Configure` (genera URP Asset + 2D Renderer y lo asigna en GraphicsSettings). `CreateGameData.CreateData` está dormante tras el pivote.
 
 ## Arquitectura (lee esto antes de tocar nada)
 
@@ -46,13 +46,13 @@ Si añades una entidad/sistema, **instánciala desde el bootstrap**, no la busqu
 
 ## Trampas conocidas / contexto
 
-- **Arte/audio/UI son procedurales** (`FX/PixelArt`, `Sfx`, `Music`; UI en IMGUI/`OnGUI`): no hay assets binarios → sin Git LFS aún. Pendiente migrar UI a uGUI.
-- **Dormantes del juego anterior** (compilan, sin uso; no los “arregles” pensando que son del juego actual): `Player/PlayerController`, `Enemies/EnemySpawner`, `Combat/Pickup`, `Core/Upgrades`, `Data/*`. `GameManager.Player`/`OnPlayerDied` se conservan solo para que `PlayerController` compile.
+- **Arte/audio/UI:** arte de personajes y entorno con assets CC0 de Kenney en `Assets/Resources/Art/` (cargados por código vía `ArtCache`); bala/moneda/cofre/muzzle siguen procedurales (`PixelArt` como fallback de `ArtCache`). Audio procedural (`Sfx`, `Music`). UI en uGUI (`UGui.cs`, `MenuUI`, `Hud`, `PauseMenu`); `FloatingTextManager` aún usa `OnGUI` para texto flotante de combate.
+- **Render pipeline: URP 2D + Linear.** Post-proceso via `PostProcessSetup` (Bloom, Vignette, ColorAdjustments, FilmGrain). `Light2D` en farolas del entorno. Configurar URP con menú *Zombie Rush → Configurar URP 2D* (`URPSetup.Configure`).
+- **Git LFS obligatorio:** tras un clone fresco, ejecuta `brew install git-lfs && git lfs install && git lfs pull`. Las reglas están en `.gitattributes` (`*.png`, `*.psd`, `*.wav`, etc.). Sin LFS, los assets binarios no se descargan.
 - El balance vive como valores por defecto en `Squad`, `SquadShooter`, `LevelGenerator` (se montan por código, no se ven en el Inspector): para tunear, edita esos defaults.
-- El APK ya incluye **ambas escenas** (antes solo `Game.unity`).
 
 ## Flujo de trabajo
 
-- **Git:** repo en GitHub (`luismigo91/zombie-dash`), rama `main`, commit por hito. Push/commit solo cuando el usuario lo pida. Tag `pre-zombie-rush` = rollback al juego anterior.
-- **OpenSpec** (`openspec/`, schema `spec-driven`): el cambio activo es `pivot-zombie-rush`. Skills `opsx:*` para proponer/aplicar/archivar.
+- **Git:** repo en GitHub (`luismigo91/zombie-dash`), rama `main`, commit por hito. Push/commit solo cuando el usuario lo pida. Tag `pre-zombie-rush` = rollback al juego anterior; tag `pre-art-pass` = rollback antes del art pass.
+- **OpenSpec** (`openspec/`, schema `spec-driven`): el cambio activo es `art-pass`. Skills `opsx:*` para proponer/aplicar/archivar.
 - **Filosofía:** empezar simple, iterar, validar el loop con primitivas antes de pulir; cada cambio jugable se compila a APK y se prueba en dispositivo real.

@@ -21,7 +21,6 @@ public static class Vfx
     // --- paleta usada por los efectos (mood "noche apocalíptica neón") ---
     static readonly Color BulletCore = new Color(1f, 0.823f, 0.227f); // #FFD23A
     static readonly Color BulletTail = new Color(1f, 0.478f, 0.102f); // #FF7A1A
-    static readonly Color MuzzleHalo = new Color(1f, 0.969f, 0.800f); // #FFF7CC
     static readonly Color CoinGold = new Color(1f, 0.823f, 0.227f);   // #FFD23A
     static readonly Color CoinHi = new Color(1f, 0.941f, 0.627f);     // #FFF0A0
 
@@ -41,9 +40,9 @@ public static class Vfx
 
     static readonly Stack<GameObject> muzzlePool = new Stack<GameObject>();
     static readonly Vector3 MuzzleBaseScale = new Vector3(0.35f, 0.35f, 1f);
-    static readonly Vector3 HaloBaseScale = new Vector3(0.5f, 0.5f, 1f);
 
-    /// <summary>Destello breve de fogonazo: un quad amarillo que crece y se desvanece, con micro-shake.</summary>
+    /// <summary>Destello breve de fogonazo: un quad amarillo que crece y se desvanece, con micro-shake.
+    /// El halo de glow lo aporta el Bloom del volume URP (ya sin quad hijo).</summary>
     public static void Muzzle(Vector3 pos)
     {
         GameObject go = null;
@@ -56,11 +55,7 @@ public static class Vfx
 
         if (go == null)
         {
-            // Quad amarillo + halo (hijo).
             go = Prims.Make("VfxMuzzle", BulletCore, new Vector2(0.35f, 0.35f), pos, sortingOrder: 10);
-            var halo = Prims.Make("VfxMuzzleHalo", new Color(MuzzleHalo.r, MuzzleHalo.g, MuzzleHalo.b, 0.7f),
-                new Vector2(0.5f, 0.5f), pos, sortingOrder: 9);
-            halo.transform.SetParent(go.transform, true);
         }
         else
         {
@@ -68,14 +63,6 @@ public static class Vfx
             go.transform.localScale = MuzzleBaseScale;
             var sr = go.GetComponent<SpriteRenderer>();
             if (sr != null) sr.color = BulletCore;
-            if (go.transform.childCount > 0)
-            {
-                var halo = go.transform.GetChild(0);
-                halo.localPosition = Vector3.zero;
-                halo.localScale = HaloBaseScale;
-                var hsr = halo.GetComponent<SpriteRenderer>();
-                if (hsr != null) hsr.color = new Color(MuzzleHalo.r, MuzzleHalo.g, MuzzleHalo.b, 0.7f);
-            }
             if (!go.activeSelf) go.SetActive(true);
         }
 
@@ -86,7 +73,6 @@ public static class Vfx
     static IEnumerator MuzzleRoutine(GameObject go)
     {
         var sr = go.GetComponent<SpriteRenderer>();
-        var haloSr = go.transform.childCount > 0 ? go.transform.GetChild(0).GetComponent<SpriteRenderer>() : null;
         Vector3 baseScale = MuzzleBaseScale;
         const float life = 0.075f;
         float age = 0f;
@@ -100,7 +86,6 @@ public static class Vfx
             go.transform.localScale = baseScale * s;
             float a = 1f - t;
             SetAlpha(sr, a);
-            SetAlpha(haloSr, a * 0.7f);
             yield return null;
         }
         if (go != null)
