@@ -38,6 +38,10 @@ public class Squad : MonoBehaviour
     public float Width => Radius * 2f;
     public float TopY => transform.position.y + Radius;
 
+    // POOL de unidades: los gates ×N generan cientos de soldados; reutilizar evita
+    // el GC de instanciar/destruir. Tolerante a la recarga de escena (nulos descartados).
+    static readonly Stack<Transform> unitPool = new Stack<Transform>();
+
     readonly List<Transform> units = new List<Transform>();
 
     Camera cam;
@@ -179,13 +183,33 @@ public class Squad : MonoBehaviour
         }
     }
 
-    /// <summary>Instancia un soldado en el centro (luego va a su hueco del disco).</summary>
+    /// <summary>Instancia (o reutiliza) un soldado en el centro (luego va a su hueco).</summary>
     void SpawnOne()
     {
-        GameObject go = Prims.MakeSprite("Unit", PixelArt.Player, Color.white,
-            new Vector2(unitSize, unitSize), transform.position, sortingOrder: 2);
-        go.transform.SetParent(transform, worldPositionStays: false);
-        go.transform.localPosition = new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f), 0f);
+        Transform t = null;
+        while (unitPool.Count > 0)
+        {
+            t = unitPool.Pop();
+            if (t != null) break; // descarta nulos (destruidos por recarga de escena)
+            t = null;
+        }
+
+        GameObject go;
+        if (t != null)
+        {
+            go = t.gameObject;
+            if (go.transform.parent != transform) go.transform.SetParent(transform, false);
+            go.transform.localPosition = new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f), 0f);
+            go.transform.localScale = new Vector3(unitSize, unitSize, 1f);
+            if (!go.activeSelf) go.SetActive(true);
+        }
+        else
+        {
+            go = Prims.MakeSprite("Unit", PixelArt.Player, Color.white,
+                new Vector2(unitSize, unitSize), transform.position, sortingOrder: 2);
+            go.transform.SetParent(transform, worldPositionStays: false);
+            go.transform.localPosition = new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f), 0f);
+        }
         units.Add(go.transform);
 
         // Animación de marcha (el offset de fase aleatorio desincroniza la formación).
@@ -226,6 +250,7 @@ public class Squad : MonoBehaviour
     {
         for (int k = 0; k < n && units.Count > 0; k++)
         {
+            // Frente = unidad de mayor Y local. Una sola pasada; n suele ser 1.
             int frontIdx = 0;
             float bestY = float.NegativeInfinity;
             for (int i = 0; i < units.Count; i++)
@@ -239,7 +264,8 @@ public class Squad : MonoBehaviour
             Transform u = units[frontIdx];
             units.RemoveAt(frontIdx);
             HitEffect.Burst(u.position, new Color(0.6f, 0.8f, 0.4f), 4, 4f, 0.12f, 0.22f);
-            Destroy(u.gameObject);
+            u.gameObject.SetActive(false);
+            unitPool.Push(u);
         }
 
         if (units.Count == 0 && GameManager.Instance != null)

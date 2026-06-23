@@ -21,6 +21,9 @@ public class FloatingTextManager : MonoBehaviour
     }
 
     readonly List<Item> items = new List<Item>();
+    // Pool de Items: cada impacto genera un número flotante; reutilizar evita el
+    // GC de asignar/liberar Item por impacto en hordas grandes.
+    readonly Stack<Item> itemPool = new Stack<Item>();
     Camera cam;
     static GUIStyle _itemStyle; // cacheado entre frames (evita GC churn en OnGUI)
 
@@ -33,7 +36,14 @@ public class FloatingTextManager : MonoBehaviour
     public static void Spawn(Vector3 world, string text, Color color, float size = 30f, float life = 0.7f)
     {
         if (Instance == null) return;
-        Instance.items.Add(new Item { world = world, text = text, color = color, size = size, life = life });
+        Item it = Instance.itemPool.Count > 0 ? Instance.itemPool.Pop() : new Item();
+        it.world = world;
+        it.text = text;
+        it.color = color;
+        it.size = size;
+        it.life = life;
+        it.age = 0f;
+        Instance.items.Add(it);
     }
 
     void Update()
@@ -44,7 +54,11 @@ public class FloatingTextManager : MonoBehaviour
             var it = items[i];
             it.age += dt;
             it.world += Vector3.up * (1.6f * dt); // sube
-            if (it.age >= it.life) items.RemoveAt(i);
+            if (it.age >= it.life)
+            {
+                items.RemoveAt(i);
+                itemPool.Push(it); // devuelto al pool (sin GC)
+            }
         }
     }
 

@@ -14,13 +14,14 @@ public static class Weapons
         public float damageMult;
         public float fireRateMult;
         public int extraStreams;
+        public int pierce; // enemigos extra que atraviesan las balas (mecánica perforante)
     }
 
     public static readonly Tier[] Tiers =
     {
-        new Tier { name = "Pistola",  damageMult = 1.0f, fireRateMult = 1.0f, extraStreams = 0 },
-        new Tier { name = "Subfusil", damageMult = 0.7f, fireRateMult = 2.0f, extraStreams = 0 },
-        new Tier { name = "Escopeta", damageMult = 1.6f, fireRateMult = 0.9f, extraStreams = 2 },
+        new Tier { name = "Pistola",  damageMult = 1.0f, fireRateMult = 1.0f, extraStreams = 0, pierce = 0 },
+        new Tier { name = "Subfusil", damageMult = 0.7f, fireRateMult = 2.0f, extraStreams = 0, pierce = 0 },
+        new Tier { name = "Escopeta", damageMult = 1.6f, fireRateMult = 0.9f, extraStreams = 2, pierce = 2 },
     };
 
     public static int MaxTier => Tiers.Length - 1;

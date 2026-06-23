@@ -45,11 +45,14 @@ public class SquadShooter : MonoBehaviour
 
         Weapons.Tier tier = Weapons.Get(gm.WeaponTier);
 
+        // Cadencia amplificada por el power-up Rapid (si está activo).
+        float rapidFactor = PowerUpManager.Instance != null ? PowerUpManager.Instance.FireRateFactor : 1f;
+
         float fireWidth = squad.Width * fireConcentration;
         int streams = Mathf.Clamp(Mathf.RoundToInt(fireWidth / streamSpacing) + tier.extraStreams, 1, maxStreams);
         streams = Mathf.Min(streams, n);
 
-        float interval = 1f / Mathf.Max(0.01f, fireRate * tier.fireRateMult);
+        float interval = 1f / Mathf.Max(0.01f, fireRate * tier.fireRateMult * rapidFactor);
         float damagePerStream = baseDamage * tier.damageMult * n / streams;
         float cx = transform.position.x;
         float y = squad.TopY;
@@ -69,7 +72,7 @@ public class SquadShooter : MonoBehaviour
                     ? 0f
                     : Mathf.Lerp(-fireWidth * 0.5f, fireWidth * 0.5f, k / (streams - 1f));
                 var boca = new Vector3(cx + fx, y, 0f);
-                Bullet.Spawn(boca, Vector2.up, bulletSpeed, damagePerStream);
+                Bullet.Spawn(boca, Vector2.up, bulletSpeed, damagePerStream, tier.pierce);
                 Vfx.Muzzle(boca); // fogonazo de boca en cada columna
                 firedAny = true;
             }

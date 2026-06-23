@@ -1,13 +1,13 @@
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Overlay de fundido a negro para las transiciones de escena. Singleton creado
-/// por código (lazy) y persistente entre escenas (DontDestroyOnLoad). Dibuja un
-/// rectángulo negro a pantalla completa con IMGUI por encima de todo (depth muy
-/// bajo) y anima el alpha con una máquina de estados en Update usando
-/// unscaledDeltaTime, de modo que el fundido funciona aunque Time.timeScale sea 0
-/// (p.ej. durante un hit-stop).
+/// Overlay de fundido a negro para las transiciones de escena (uGUI). Singleton
+/// creado por código (lazy) y persistente entre escenas (DontDestroyOnLoad). Dibuja
+/// una Image negra a pantalla completa sobre un Canvas con sortingOrder muy alto y
+/// anima el alpha con una máquina de estados en Update usando unscaledDeltaTime, de
+/// modo que el fundido funciona aunque Time.timeScale sea 0 (p.ej. durante un hit-stop).
 ///
 /// API: SceneFade.Load(scene) hace fade-out a negro, carga la escena y fade-in.
 /// Es robusto ante llamadas múltiples: no duplica overlays ni instancias y, si
@@ -22,14 +22,10 @@ public class SceneFade : MonoBehaviour
     Phase phase = Phase.Idle;
     float alpha;                 // 0 = transparente, 1 = negro
     string pendingScene;         // escena destino de la transición en curso
-    Texture2D blackTex;
+    Image overlay;
 
     const float FadeDuration = 0.35f; // segundos por mitad del fundido
 
-    /// <summary>
-    /// Funde a negro, carga la escena indicada y vuelve de negro. Si ya hay una
-    /// transición activa, solo actualiza el destino (no crea overlays nuevos).
-    /// </summary>
     public static void Load(string scene)
     {
         if (string.IsNullOrEmpty(scene)) return;
@@ -37,7 +33,6 @@ public class SceneFade : MonoBehaviour
         _instance.Begin(scene);
     }
 
-    /// <summary>Crea el singleton si no existe (sin depender de ningún bootstrap).</summary>
     static void EnsureInstance()
     {
         if (_instance != null) return;
@@ -48,7 +43,6 @@ public class SceneFade : MonoBehaviour
 
     void Awake()
     {
-        // Guarda contra duplicados si alguien instanciara este componente a mano.
         if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
@@ -56,18 +50,18 @@ public class SceneFade : MonoBehaviour
         }
         _instance = this;
 
-        blackTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-        blackTex.SetPixel(0, 0, Color.black);
-        blackTex.Apply();
-        blackTex.hideFlags = HideFlags.HideAndDontSave;
+        // Canvas con sortingOrder muy alto → siempre por encima del resto de UI.
+        var canvas = UGui.MakeCanvas("SceneFadeCanvas", sortOrder: 1000);
+        canvas.gameObject.transform.SetParent(transform, false);
+        DontDestroyOnLoad(canvas.gameObject);
+
+        var rt = UGui.Rect(canvas.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        overlay = UGui.AddImage(rt, new Color(0, 0, 0, 0), UGui.White, false);
     }
 
     void Begin(string scene)
     {
         pendingScene = scene;
-        // Si ya estábamos fundiendo (Out/Loading) o tapados, no reiniciamos el
-        // alpha: solo actualizamos el destino pendiente. Si estábamos en Idle o
-        // haciendo fade-in, arrancamos un nuevo fade-out desde el alpha actual.
         if (phase == Phase.Idle || phase == Phase.In)
             phase = Phase.Out;
     }
@@ -89,7 +83,6 @@ public class SceneFade : MonoBehaviour
                 break;
 
             case Phase.Loading:
-                // Carga con la pantalla totalmente en negro y pasa al fade-in.
                 if (!string.IsNullOrEmpty(pendingScene))
                 {
                     SceneManager.LoadScene(pendingScene);
@@ -107,23 +100,17 @@ public class SceneFade : MonoBehaviour
                 }
                 break;
         }
-    }
 
-    void OnGUI()
-    {
-        if (alpha <= 0f && phase == Phase.Idle) return;
-
-        // Depth muy bajo => se dibuja por ENCIMA del resto de IMGUI (HUD/menú).
-        GUI.depth = -1000;
-        var prev = GUI.color;
-        GUI.color = new Color(0f, 0f, 0f, Mathf.Clamp01(alpha));
-        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), blackTex);
-        GUI.color = prev;
+        if (overlay != null)
+        {
+            var c = overlay.color;
+            c.a = Mathf.Clamp01(alpha);
+            overlay.color = c;
+        }
     }
 
     void OnDestroy()
     {
-        if (blackTex != null) Destroy(blackTex);
         if (_instance == this) _instance = null;
     }
 }

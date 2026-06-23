@@ -52,6 +52,35 @@ public static class LevelGenerator
             reward = !reward;
             var ev = new LevelEvent { time = t };
 
+            // EVENTOS ESPECIALES (raros, a partir del acto 1): rompen el ritmo con
+            // una recompensa gorda (gate dorado), una lluvia de jaulas o una horda élite.
+            if (act >= 1 && rng.NextDouble() < 0.08)
+            {
+                float roll = (float)rng.NextDouble();
+                if (roll < 0.40)
+                {
+                    ev.type = EncounterType.GoldenGate;
+                    ev.leftEffect = rng.NextDouble() < 0.5 ? GateEffect.Mult : GateEffect.Weapon;
+                    ev.leftValue = ev.leftEffect == GateEffect.Mult ? 3f : 1f;
+                }
+                else if (roll < 0.70)
+                {
+                    ev.type = EncounterType.CageRain;
+                    ev.survivors = 3 + act;
+                    ev.cageHealth = zHp * (2.5f + act * 0.4f);
+                }
+                else
+                {
+                    ev.type = EncounterType.EliteHorde;
+                    ev.hordeCount = 8 + act * 2 + rng.Next(0, 4);
+                    ev.zombieHealth = zHp * 2.2f; // élite: mucha más vida
+                    ev.zombieSpeed = zSpd * 1.15f;
+                }
+                def.events.Add(ev);
+                t += beat * (float)(0.8 + rng.NextDouble() * 0.5);
+                continue;
+            }
+
             if (reward)
             {
                 if (cages && rng.NextDouble() < 0.33)

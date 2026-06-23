@@ -27,6 +27,9 @@ public class GameBootstrap : MonoBehaviour
         // Texto flotante (números de daño) usado por Enemy/Squad.
         new GameObject("FloatingText").AddComponent<FloatingTextManager>();
 
+        // Gestor de power-ups in-run (escudo, cadencia, ralentización, bomba).
+        new GameObject("PowerUpManager").AddComponent<PowerUpManager>();
+
         // Escuadrón cerca del borde inferior + su disparo.
         Squad squad = CreateSquad();
         gm.Squad = squad;

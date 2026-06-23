@@ -18,9 +18,10 @@ public class Bullet : MonoBehaviour
     float speed;
     float damage;
     float life;
+    int pierce; // cuántos enemigos extra puede atravesar (0 = se detiene al primer impacto)
 
     /// <summary>Saca una bala del pool (o crea una) y la lanza desde pos hacia dir.</summary>
-    public static Bullet Spawn(Vector3 pos, Vector2 dir, float speed, float damage)
+    public static Bullet Spawn(Vector3 pos, Vector2 dir, float speed, float damage, int pierce = 0)
     {
         Bullet b = null;
         while (pool.Count > 0)
@@ -50,6 +51,7 @@ public class Bullet : MonoBehaviour
         b.speed = speed;
         b.damage = damage;
         b.life = 1.4f;
+        b.pierce = pierce;
 
         float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
         b.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, 0f, angle));
@@ -80,7 +82,9 @@ public class Bullet : MonoBehaviour
             hit.TakeHit(damage);
             Vfx.BulletImpact(transform.position); // chispa de impacto
             Sfx.Hit();
-            Despawn();
+            // Si le queda pierce, atraviesa y sigue; si no, se consume.
+            if (pierce > 0) pierce--;
+            else Despawn();
         }
     }
 }

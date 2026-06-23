@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -35,18 +36,48 @@ public static class Vfx
     };
 
     // ------------------------------------------------------------------
-    //  FOGONAZO DE BOCA
+    //  FOGONAZO DE BOCA (con pool: se llama por cada disparo)
     // ------------------------------------------------------------------
+
+    static readonly Stack<GameObject> muzzlePool = new Stack<GameObject>();
+    static readonly Vector3 MuzzleBaseScale = new Vector3(0.35f, 0.35f, 1f);
+    static readonly Vector3 HaloBaseScale = new Vector3(0.5f, 0.5f, 1f);
 
     /// <summary>Destello breve de fogonazo: un quad amarillo que crece y se desvanece, con micro-shake.</summary>
     public static void Muzzle(Vector3 pos)
     {
-        // Quad amarillo (sin depender de PixelArt.Muzzle, que es de otra área):
-        // un cuadrado tintado vale como destello y nunca rompe la compilación.
-        var go = Prims.Make("VfxMuzzle", BulletCore, new Vector2(0.35f, 0.35f), pos, sortingOrder: 10);
-        var halo = Prims.Make("VfxMuzzleHalo", new Color(MuzzleHalo.r, MuzzleHalo.g, MuzzleHalo.b, 0.7f),
-            new Vector2(0.5f, 0.5f), pos, sortingOrder: 9);
-        halo.transform.SetParent(go.transform, true);
+        GameObject go = null;
+        while (muzzlePool.Count > 0)
+        {
+            go = muzzlePool.Pop();
+            if (go != null) break; // descarta nulos (recarga de escena)
+            go = null;
+        }
+
+        if (go == null)
+        {
+            // Quad amarillo + halo (hijo).
+            go = Prims.Make("VfxMuzzle", BulletCore, new Vector2(0.35f, 0.35f), pos, sortingOrder: 10);
+            var halo = Prims.Make("VfxMuzzleHalo", new Color(MuzzleHalo.r, MuzzleHalo.g, MuzzleHalo.b, 0.7f),
+                new Vector2(0.5f, 0.5f), pos, sortingOrder: 9);
+            halo.transform.SetParent(go.transform, true);
+        }
+        else
+        {
+            go.transform.position = pos;
+            go.transform.localScale = MuzzleBaseScale;
+            var sr = go.GetComponent<SpriteRenderer>();
+            if (sr != null) sr.color = BulletCore;
+            if (go.transform.childCount > 0)
+            {
+                var halo = go.transform.GetChild(0);
+                halo.localPosition = Vector3.zero;
+                halo.localScale = HaloBaseScale;
+                var hsr = halo.GetComponent<SpriteRenderer>();
+                if (hsr != null) hsr.color = new Color(MuzzleHalo.r, MuzzleHalo.g, MuzzleHalo.b, 0.7f);
+            }
+            if (!go.activeSelf) go.SetActive(true);
+        }
 
         VfxRunner.Inst.StartCoroutine(MuzzleRoutine(go));
         CameraShake.Shake(0.04f, 0.05f); // micro kick
@@ -56,7 +87,7 @@ public static class Vfx
     {
         var sr = go.GetComponent<SpriteRenderer>();
         var haloSr = go.transform.childCount > 0 ? go.transform.GetChild(0).GetComponent<SpriteRenderer>() : null;
-        Vector3 baseScale = go.transform.localScale;
+        Vector3 baseScale = MuzzleBaseScale;
         const float life = 0.075f;
         float age = 0f;
 
@@ -72,7 +103,11 @@ public static class Vfx
             SetAlpha(haloSr, a * 0.7f);
             yield return null;
         }
-        if (go != null) Object.Destroy(go);
+        if (go != null)
+        {
+            go.SetActive(false);
+            muzzlePool.Push(go);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -94,12 +129,11 @@ public static class Vfx
         for (int i = 0; i < count; i++)
         {
             float size = Random.Range(0.07f, 0.18f);
-            var go = Prims.Make("VfxGore", tint, new Vector2(size, size), pos, sortingOrder: 9);
             float ang = Random.Range(0f, Mathf.PI * 2f);
             float spd = Random.Range(2.5f, 6.5f);
             Vector2 vel = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * spd;
             vel.y += Random.Range(1.5f, 4f); // sesgo hacia arriba antes de caer
-            go.AddComponent<VfxParticle>().Init(vel, Random.Range(0.3f, 0.6f),
+            VfxParticle.Spawn(pos, tint, size, 9).Init(vel, Random.Range(0.3f, 0.6f),
                 gravity: -9f, friction: 1.5f, spin: Random.Range(-720f, 720f), shrink: true);
         }
 
@@ -121,11 +155,10 @@ public static class Vfx
         {
             Color c = Random.value < 0.5f ? BulletCore : BulletTail;
             float size = Random.Range(0.05f, 0.11f);
-            var go = Prims.Make("VfxSpark", c, new Vector2(size, size), pos, sortingOrder: 9);
             float ang = Random.Range(0f, Mathf.PI * 2f);
             float spd = Random.Range(3.5f, 7f);
             Vector2 vel = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * spd;
-            go.AddComponent<VfxParticle>().Init(vel, Random.Range(0.12f, 0.2f),
+            VfxParticle.Spawn(pos, c, size, 9).Init(vel, Random.Range(0.12f, 0.2f),
                 gravity: 0f, friction: 6f, spin: 0f, shrink: true);
         }
     }
@@ -146,11 +179,10 @@ public static class Vfx
         for (int i = 0; i < count; i++)
         {
             float size = Random.Range(0.05f, 0.1f);
-            var go = Prims.Make("VfxCoinSpark", CoinHi, new Vector2(size, size), pos, sortingOrder: 10);
             float ang = Random.Range(Mathf.PI * 0.25f, Mathf.PI * 0.75f); // arco hacia arriba
             float spd = Random.Range(2f, 4f);
             Vector2 vel = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * spd;
-            go.AddComponent<VfxParticle>().Init(vel, Random.Range(0.25f, 0.4f),
+            VfxParticle.Spawn(pos, CoinHi, size, 10).Init(vel, Random.Range(0.25f, 0.4f),
                 gravity: -5f, friction: 2f, spin: 0f, shrink: true);
         }
 
@@ -263,7 +295,9 @@ public static class Vfx
                 center.z);
             var go = Prims.Make("VfxConfetti", c, new Vector2(size, size * Random.Range(0.5f, 1f)), spawn, sortingOrder: 12);
             Vector2 vel = new Vector2(Random.Range(-1.5f, 1.5f), Random.Range(-1f, 0.5f));
-            go.AddComponent<VfxParticle>().Init(vel, Random.Range(0.8f, 1.4f),
+            var vp = go.GetComponent<VfxParticle>() ?? go.AddComponent<VfxParticle>();
+            // VfxConfetti usa escala NO cuadrada (size x size*alt); la respetamos.
+            vp.Init(vel, Random.Range(0.8f, 1.4f),
                 gravity: -6f, friction: 0.3f, spin: Random.Range(-540f, 540f), shrink: false);
         }
         CameraShake.Shake(0.08f, 0.2f); // pequeño kick de celebración
@@ -367,12 +401,15 @@ public class VfxRunner : MonoBehaviour
 
 /// <summary>
 /// Partícula VFX propia, más rica que FxParticle: cuadrado tintado con velocidad
-/// inicial, gravedad opcional, fricción, giro y fade por vida. Al expirar se
-/// autodestruye. La usan Gore (gravedad + giro), BulletImpact (chispa sin
-/// gravedad) y Confetti (gravedad + giro + colores).
+/// inicial, gravedad opcional, fricción, giro y fade por vida. Al expirar vuelve
+/// al POOL estático (no se destruye): la usan Gore, BulletImpact, Confetti y
+/// CoinPickup, todas ellas hot-paths con muchos impactos por segundo. El pool
+/// tolera la recarga de escena (nulos descartados al sacar).
 /// </summary>
 public class VfxParticle : MonoBehaviour
 {
+    static readonly Stack<VfxParticle> pool = new Stack<VfxParticle>();
+
     Vector2 vel;
     float life = 0.4f;
     float age;
@@ -383,10 +420,31 @@ public class VfxParticle : MonoBehaviour
     SpriteRenderer sr;
     Vector3 baseScale;
 
-    void Awake()
+    public static VfxParticle Spawn(Vector3 pos, Color color, float size, int sortingOrder)
     {
-        sr = GetComponent<SpriteRenderer>();
-        baseScale = transform.localScale;
+        VfxParticle p = null;
+        while (pool.Count > 0)
+        {
+            p = pool.Pop();
+            if (p != null) break; // descarta nulos (destruidos por recarga de escena)
+            p = null;
+        }
+
+        if (p == null)
+        {
+            GameObject go = Prims.Make("Vfx", color, new Vector2(size, size), pos, sortingOrder: sortingOrder);
+            p = go.AddComponent<VfxParticle>();
+            p.sr = go.GetComponent<SpriteRenderer>();
+        }
+        else
+        {
+            p.transform.position = pos;
+            if (p.sr != null) { p.sr.color = color; p.sr.sortingOrder = sortingOrder; }
+            if (!p.gameObject.activeSelf) p.gameObject.SetActive(true);
+        }
+
+        p.transform.localScale = new Vector3(size, size, 1f);
+        return p;
     }
 
     /// <summary>Configura la partícula. gravity en u/s² (negativo = cae); spin en grados/seg.</summary>
@@ -398,6 +456,7 @@ public class VfxParticle : MonoBehaviour
         this.friction = friction;
         this.spin = spin;
         this.shrink = shrink;
+        age = 0f;
         if (sr == null) sr = GetComponent<SpriteRenderer>();
         baseScale = transform.localScale;
     }
@@ -423,6 +482,12 @@ public class VfxParticle : MonoBehaviour
             sr.color = c;
         }
 
-        if (age >= life) Destroy(gameObject);
+        if (age >= life) Despawn();
+    }
+
+    void Despawn()
+    {
+        gameObject.SetActive(false);
+        pool.Push(this);
     }
 }

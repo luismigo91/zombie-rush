@@ -9,6 +9,8 @@ using UnityEngine;
 /// </summary>
 public class LevelRunner : MonoBehaviour
 {
+    public static LevelRunner Instance { get; private set; }
+
     LevelDefinition def;
     Camera cam;
     float topY, minX, maxX, laneOffset;
@@ -17,8 +19,12 @@ public class LevelRunner : MonoBehaviour
     bool bossSpawned;
     Enemy boss;
 
+    /// <summary>Velocidad de scroll del nivel actual (la usan drops/power-ups).</summary>
+    public float ScrollSpeed => def != null ? def.scrollSpeed : 2f;
+
     void Start()
     {
+        Instance = this;
         cam = Camera.main;
         float halfH = cam.orthographicSize;
         float halfW = halfH * cam.aspect;
@@ -107,7 +113,7 @@ public class LevelRunner : MonoBehaviour
                     }
 
                     Enemy.Spawn(new Vector3(px, topY + i * 0.5f, 0f),
-                        ev.zombieHealth * hpMul, ev.zombieSpeed * speedMul, 1f, 0,
+                        ev.zombieHealth * hpMul, ev.zombieSpeed * speedMul, 1,
                         color, new Vector2(size, size));
                 }
                 break;
@@ -125,6 +131,39 @@ public class LevelRunner : MonoBehaviour
 
             case EncounterType.Barrier:
                 Barrier.Spawn(new Vector3(0f, topY, 0f), ev.barrierHealth, ev.barrierWidth, def.scrollSpeed);
+                break;
+
+            case EncounterType.GoldenGate:
+                // Gate dorado central: recompensa gorda (×3 o arma). Ancho mayor para
+                // que sea fácil alinearlo, y color dorado lo diferencia del par normal.
+                Gate.Spawn(new Vector3(0f, topY, 0f), ev.leftEffect, ev.leftValue, laneOffset * 1.3f, def.scrollSpeed);
+                break;
+
+            case EncounterType.CageRain:
+                // Lluvia de jaulas: 3-4 jaulas repartidas en x a la vez.
+                int cages = 3 + ((int)(ev.time) & 1);
+                for (int i = 0; i < cages; i++)
+                {
+                    float px = Mathf.Lerp(minX, maxX, (i + 0.5f) / cages);
+                    Cage.Spawn(new Vector3(px, topY, 0f), ev.survivors, ev.cageHealth, def.scrollSpeed);
+                }
+                break;
+
+            case EncounterType.EliteHorde:
+                // Horda élite: zombies más duros y con sesgo a tanks/corredores.
+                int eliteN = Mathf.Min(80, ev.hordeCount);
+                for (int i = 0; i < eliteN; i++)
+                {
+                    float px = Random.Range(minX, maxX);
+                    float roll = Random.value;
+                    Color color; float speedMul; float size; float hpMul;
+                    if (roll < 0.45f) { color = new Color(0.61f, 0.36f, 0.84f); speedMul = 0.7f; size = 0.85f; hpMul = 2.6f; } // tank
+                    else if (roll < 0.80f) { color = new Color(0.91f, 0.78f, 0.29f); speedMul = 1.7f; size = 0.45f; hpMul = 1.2f; } // runner
+                    else { color = new Color(0.50f, 0.69f, 0.31f); speedMul = 1f; size = 0.55f; hpMul = 2.2f; } // normal duro
+                    Enemy.Spawn(new Vector3(px, topY + i * 0.5f, 0f),
+                        ev.zombieHealth * hpMul, ev.zombieSpeed * speedMul, 2,
+                        color, new Vector2(size, size));
+                }
                 break;
         }
     }

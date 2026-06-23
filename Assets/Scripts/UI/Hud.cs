@@ -1,291 +1,286 @@
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
-/// HUD de la partida (Zombie Rush) con IMGUI (OnGUI) y el look neón de UiKit. Muestra
-/// chips de Unidades / Nivel / Monedas con iconos, una barra de progreso del nivel con
-/// marcador de jefe, un botón de PAUSA, y las pantallas pulidas de VICTORIA y DERROTA.
+/// HUD de la partida (uGUI+TextMeshPro) con el look neón de UGui. Muestra chips de
+/// Unidades / Nivel / Monedas, barra de progreso con marcador de jefe, botón PAUSA,
+/// indicadores de power-ups activos, y las pantallas de VICTORIA y DERROTA.
 ///
-/// Incluye un tutorial sutil "Arrastra para mover" la primera vez que se juega
-/// (PlayerPrefs "seen_tutorial"), que desaparece al primer arrastre o tras unos
-/// segundos. Conserva FlashDamage() y el destello rojo de daño (los usa código dormante).
-///
-/// Provisional sobre IMGUI; en pulido se migrará a uGUI.
+/// Incluye un tutorial sutil "Arrastra para mover" la primera vez (PlayerPrefs).
+/// Construye el Canvas en Awake y actualiza los textos/barras en Update.
+/// Conserva FlashDamage() para el destello rojo de daño del escuadrón.
 /// </summary>
 public class Hud : MonoBehaviour
 {
     const string SeenTutorialKey = "seen_tutorial";
     const float TutorialTimeout = 4f;
 
-    static float damageFlash;
+    static Image damageOverlay;
 
-    // Estado de pantalla final (para disparar confeti una sola vez).
-    bool confettiFired;
-
-    // Estado del tutorial.
-    bool tutorialActive;
-    bool tutorialChecked;
+    // Referencias dinámicas.
+    TextMeshProUGUI unitsLabel, levelLabel, coinsLabel;
+    Image progressFill;
+    GameObject bossMarker;
+    GameObject powerUpContainer;
+    GameObject tutorialObj;
     float tutorialTimer;
+    bool tutorialActive;
 
-    /// <summary>Destello rojo de pantalla (lo conserva PlayerController dormante).</summary>
-    public static void FlashDamage() => damageFlash = 0.25f;
+    // Pantallas finales.
+    GameObject victoryScreen, defeatScreen;
+    bool victoryShown;
 
-    void Start()
+    void Awake()
     {
-        // El tutorial solo aparece la primera vez (flag persistente).
+        var canvas = UGui.MakeCanvas("HUD", sortOrder: 5);
+        Build(canvas.transform);
         tutorialActive = PlayerPrefs.GetInt(SeenTutorialKey, 0) == 0;
-        tutorialChecked = true;
-        tutorialTimer = 0f;
+    }
+
+    public static void FlashDamage()
+    {
+        if (damageOverlay != null)
+        {
+            var c = damageOverlay.color;
+            c.a = 0.4f;
+            damageOverlay.color = c;
+        }
     }
 
     void Update()
     {
-        if (damageFlash > 0f) damageFlash -= Time.deltaTime;
-
-        if (tutorialActive)
-            UpdateTutorial();
-    }
-
-    /// <summary>Cierra el tutorial al detectar el primer arrastre/toque o por timeout.</summary>
-    void UpdateTutorial()
-    {
-        var gm = GameManager.Instance;
-        if (gm == null || gm.State != GameState.Playing) return;
-
-        tutorialTimer += Time.deltaTime;
-
-        bool touched = Input.GetMouseButton(0) || Input.touchCount > 0;
-        if (touched || tutorialTimer >= TutorialTimeout)
-            DismissTutorial();
-    }
-
-    void DismissTutorial()
-    {
-        tutorialActive = false;
-        PlayerPrefs.SetInt(SeenTutorialKey, 1);
-        PlayerPrefs.Save();
-    }
-
-    void OnGUI()
-    {
         var gm = GameManager.Instance;
         if (gm == null) return;
 
-        UiKit.Init();
-        float h = Screen.height, w = Screen.width, u = UiKit.U;
-
-        // --- Destello de daño (conservado) ---
-        if (damageFlash > 0f)
+        // Decae el destello de daño.
+        if (damageOverlay != null && damageOverlay.color.a > 0f)
         {
-            GUI.color = new Color(1f, 0f, 0f, 0.4f * Mathf.Clamp01(damageFlash / 0.25f));
-            GUI.DrawTexture(new Rect(0, 0, w, h), Texture2D.whiteTexture);
-            GUI.color = Color.white;
+            var c = damageOverlay.color;
+            c.a = Mathf.Max(0f, c.a - Time.deltaTime * 1.6f);
+            damageOverlay.color = c;
         }
 
-        // En pantallas finales el HUD de juego se oculta tras el overlay.
         if (gm.State == GameState.GameOver)
         {
-            DrawDefeatScreen(gm, w, h, u);
+            if (defeatScreen != null) defeatScreen.SetActive(true);
             return;
         }
         if (gm.State == GameState.Won)
         {
-            DrawVictoryScreen(gm, w, h, u);
+            if (victoryScreen != null && !victoryShown)
+            {
+                victoryShown = true;
+                victoryScreen.SetActive(true);
+            }
             return;
         }
 
-        DrawTopBar(gm, w, u);
-        DrawProgress(gm, w, u);
-        DrawPauseButton(w, u);
-
-        if (tutorialActive)
-            DrawTutorial(w, h, u);
-    }
-
-    // ===================================================================
-    //  HUD EN JUEGO
-    // ===================================================================
-
-    /// <summary>Chips superiores: unidades, nivel y monedas de la run, con iconos.</summary>
-    void DrawTopBar(GameManager gm, float w, float u)
-    {
+        // HUD en juego.
         int count = gm.Squad != null ? gm.Squad.Count : 0;
-        float y = 16 * u;
-        float chipH = 64 * u;
+        if (unitsLabel != null) unitsLabel.text = count.ToString();
+        if (levelLabel != null) levelLabel.text = $"Nv {gm.Level}";
+        if (coinsLabel != null) coinsLabel.text = gm.Coins.ToString();
+        if (progressFill != null) progressFill.fillAmount = gm.LevelProgress;
 
-        // Chip Unidades (izquierda).
-        Chip(new Rect(16 * u, y, 250 * u, chipH), UiKit.Lime, $"{count}", u);
-        // Chip Nivel (centro-izquierda).
-        Chip(new Rect(16 * u + 262 * u, y, 230 * u, chipH), UiKit.CyanNeon, $"Nv {gm.Level}", u);
+        if (tutorialActive) UpdateTutorial();
+        UpdatePowerUpIndicators();
+    }
 
-        // Chip Monedas de la run (derecha). gm.Coins es el contador de la run.
-        int coins = gm.Coins;
-        if (coins >= 0)
+    void UpdateTutorial()
+    {
+        tutorialTimer += Time.deltaTime;
+        bool touched = Input.GetMouseButton(0) || Input.touchCount > 0;
+        if (touched || tutorialTimer >= TutorialTimeout)
         {
-            float cw = 220 * u;
-            Chip(new Rect(w - cw - 16 * u, y, cw, chipH), UiKit.Gold, $"{coins}", u);
+            tutorialActive = false;
+            if (tutorialObj != null) tutorialObj.SetActive(false);
+            PlayerPrefs.SetInt(SeenTutorialKey, 1);
+            PlayerPrefs.Save();
         }
     }
 
-    /// <summary>Dibuja un chip: panel neón + icono de color + texto.</summary>
-    void Chip(Rect r, Color iconColor, string text, float u)
-    {
-        UiKit.Panel(r);
-        float pad = r.height * 0.22f;
-        float iconSz = r.height - pad * 2f;
-        var iconRect = new Rect(r.x + pad, r.y + pad, iconSz, iconSz);
-        UiKit.Icon(iconRect, iconColor);
-
-        var textRect = new Rect(iconRect.xMax + 10 * u, r.y, r.width - iconSz - pad * 2f - 12 * u, r.height);
-        var style = UiKit.StyleLabel(u);
-        var prev = style.alignment;
-        style.alignment = TextAnchor.MiddleLeft;
-        UiKit.ShadowLabel(textRect, text, style);
-        style.alignment = prev;
-    }
-
-    /// <summary>Barra de progreso del nivel con marcador de jefe en niveles múltiplo de 10.</summary>
-    void DrawProgress(GameManager gm, float w, float u)
-    {
-        float barW = w * 0.62f, barH = 22 * u;
-        float bx = (w - barW) * 0.5f, by = 96 * u;
-        bool boss = gm.Level % 10 == 0;
-        UiKit.ProgressBar(new Rect(bx, by, barW, barH), gm.LevelProgress, boss);
-    }
-
-    /// <summary>Botón de PAUSA en la esquina superior derecha (icono "||").</summary>
-    void DrawPauseButton(float w, float u)
-    {
-        float sz = 78 * u;
-        var r = new Rect(w - sz - 16 * u, 96 * u, sz, sz);
-        if (UiKit.Button(r, "II"))
-            PauseMenu.Show();
-    }
-
     // ===================================================================
-    //  TUTORIAL
+    //  Construcción de la jerarquía uGUI
     // ===================================================================
 
-    /// <summary>Overlay sutil "Arrastra para mover" con panel translúcido pulsante.</summary>
-    void DrawTutorial(float w, float h, float u)
+    void Build(Transform root)
     {
-        float pw = w * 0.6f, ph = 130 * u;
-        var r = new Rect((w - pw) * 0.5f, h * 0.62f, pw, ph);
+        // --- Destello de daño (pantalla completa, encima de todo) ---
+        var dmg = UGui.Rect(root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        damageOverlay = UGui.AddImage(dmg, new Color(1f, 0f, 0f, 0f), UGui.White, false);
 
-        // Pulso de opacidad (Time.unscaledTime para que lata aunque pausen).
-        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 3f);
-        GUI.color = new Color(1f, 1f, 1f, 0.7f + 0.3f * pulse);
-        UiKit.Panel(r);
-        GUI.color = Color.white;
-
-        // Icono de "mano/flecha" (flecha doble horizontal) a la izquierda del texto.
-        float handSz = ph * 0.4f;
-        var hand = new Rect(r.x + 26 * u, r.center.y - handSz * 0.5f, handSz, handSz);
-        DrawDragArrow(hand);
-
-        var textRect = new Rect(r.x + handSz + 40 * u, r.y, r.width - handSz - 50 * u, r.height);
-        var style = UiKit.StyleBody(u);
-        var prevA = style.alignment;
-        style.alignment = TextAnchor.MiddleLeft;
-        UiKit.ShadowLabel(textRect, "Arrastra para mover", style);
-        style.alignment = prevA;
+        BuildTopBar(root);
+        BuildProgress(root);
+        BuildPauseButton(root);
+        BuildPowerUpContainer(root);
+        BuildTutorial(root);
+        BuildVictoryScreen(root);
+        BuildDefeatScreen(root);
     }
 
-    /// <summary>Flecha doble horizontal (sugiere arrastre lateral) dibujada con cuadros.</summary>
-    void DrawDragArrow(Rect r)
+    void BuildTopBar(Transform root)
     {
-        GUI.color = UiKit.CyanNeon;
-        // Barra central.
-        float barH = r.height * 0.18f;
-        GUI.DrawTexture(new Rect(r.x, r.center.y - barH * 0.5f, r.width, barH), Texture2D.whiteTexture);
-        // Puntas (cuadros en los extremos).
-        float tip = r.height * 0.5f;
-        GUI.DrawTexture(new Rect(r.x - tip * 0.2f, r.center.y - tip * 0.5f, tip, tip), Texture2D.whiteTexture);
-        GUI.DrawTexture(new Rect(r.xMax - tip * 0.8f, r.center.y - tip * 0.5f, tip, tip), Texture2D.whiteTexture);
-        GUI.color = Color.white;
+        // Fila superior con 3 chips.
+        unitsLabel = MakeChip(root, new Vector2(20f, -20f), new Vector2(270f, 84f), UGui.Lime);
+        levelLabel = MakeChip(root, new Vector2(290f, -20f), new Vector2(250f, 84f), UGui.CyanNeon);
+        coinsLabel = MakeChip(root, new Vector2(-480f, -20f), new Vector2(220f, 84f), UGui.Gold, rightAnchor: true);
     }
 
-    // ===================================================================
-    //  PANTALLAS FINALES
-    // ===================================================================
-
-    /// <summary>VICTORIA: "NIVEL SUPERADO", estrellas, recompensa, confeti y botones.</summary>
-    void DrawVictoryScreen(GameManager gm, float w, float h, float u)
+    TextMeshProUGUI MakeChip(Transform root, Vector2 pos, Vector2 size, Color color, bool rightAnchor = false)
     {
-        Overlay(w, h);
+        var r = UGui.Rect(root, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, Vector2.zero);
+        r.sizeDelta = size;
+        r.anchoredPosition = rightAnchor
+            ? new Vector2(-pos.x - size.x * 0.5f, -pos.y - size.y * 0.5f)
+            : new Vector2(pos.x + size.x * 0.5f, -pos.y - size.y * 0.5f);
+        UGui.AddImage(r, UGui.PanelColor, UGui.Rounded);
 
-        if (!confettiFired)
-        {
-            confettiFired = true;
-            Vfx.Confetti(new Vector3(0f, 0f, 0f));
-        }
+        var icon = UGui.Rect(r, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(10f, -20f), new Vector2(52f, 20f));
+        UGui.Icon(icon, color);
 
-        float pw = w * 0.82f, ph = h * 0.5f;
-        var panel = new Rect((w - pw) * 0.5f, (h - ph) * 0.5f, pw, ph);
-        UiKit.Panel(panel);
-
-        var title = UiKit.StyleHeader(u);
-        var prev = title.normal.textColor;
-        title.normal.textColor = UiKit.Lime;
-        UiKit.ShadowLabel(new Rect(panel.x, panel.y + 30 * u, panel.width, 80 * u), "NIVEL SUPERADO", title);
-        title.normal.textColor = prev;
-
-        // Tres estrellas.
-        float starSz = 64 * u;
-        float totalW = starSz * 3f + 20 * u * 2f;
-        float sx = panel.center.x - totalW * 0.5f;
-        float sy = panel.y + 120 * u;
-        for (int i = 0; i < 3; i++)
-            UiKit.Star(new Rect(sx + i * (starSz + 20 * u), sy, starSz, starSz), UiKit.Gold);
-
-        // Recompensa de monedas de la run.
-        var reward = UiKit.StyleBody(u);
-        var prevR = reward.normal.textColor;
-        reward.normal.textColor = UiKit.Gold;
-        UiKit.ShadowLabel(new Rect(panel.x, sy + starSz + 18 * u, panel.width, 50 * u), $"+{gm.Coins} monedas", reward);
-        reward.normal.textColor = prevR;
-
-        DrawEndButtons(gm, panel, u, "SIGUIENTE NIVEL");
+        var txt = UGui.Rect(r, Vector2.zero, Vector2.one, new Vector2(66f, 0), new Vector2(-6f, 0));
+        return UGui.Text(txt, "", 30, UGui.Bone, TextAlignmentOptions.Left, bold: true);
     }
 
-    /// <summary>DERROTA: "DERROTA", monedas conseguidas y botones reintentar / menú.</summary>
-    void DrawDefeatScreen(GameManager gm, float w, float h, float u)
+    void BuildProgress(Transform root)
     {
-        Overlay(w, h);
+        // Barra centrada bajo los chips.
+        var bar = UGui.Rect(root, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+            new Vector2(-224f, -116f), new Vector2(224f, -94f));
+        progressFill = UGui.ProgressBar(bar, new Color(0.04f, 0.05f, 0.10f, 0.9f), UGui.CyanNeon);
 
-        float pw = w * 0.82f, ph = h * 0.46f;
-        var panel = new Rect((w - pw) * 0.5f, (h - ph) * 0.5f, pw, ph);
-        UiKit.Panel(panel);
-
-        var title = UiKit.StyleHeader(u);
-        var prev = title.normal.textColor;
-        title.normal.textColor = UiKit.GateBad;
-        UiKit.ShadowLabel(new Rect(panel.x, panel.y + 34 * u, panel.width, 80 * u), "DERROTA", title);
-        title.normal.textColor = prev;
-
-        UiKit.ShadowLabel(new Rect(panel.x, panel.y + 130 * u, panel.width, 50 * u),
-            $"Monedas conseguidas: {gm.Coins}", UiKit.StyleBody(u));
-
-        DrawEndButtons(gm, panel, u, "REINTENTAR");
+        // Marcador de jefe (calavera textual, visible en niveles múltiplo de 10).
+        var marker = UGui.Rect(root, new Vector2(1f, 1f), new Vector2(1f, 1f),
+            new Vector2(-8f, -132f), new Vector2(40f, -84f));
+        var m = UGui.Text(marker, "☠", 40, UGui.Bone, TextAlignmentOptions.Center, bold: true);
+        bossMarker = marker.gameObject;
+        bossMarker.SetActive(false);
     }
 
-    /// <summary>Par de botones inferiores de las pantallas finales (continuar / menú).</summary>
-    void DrawEndButtons(GameManager gm, Rect panel, float u, string continueLabel)
+    void BuildPauseButton(Transform root)
     {
-        float bw = panel.width * 0.74f, bh = 96 * u, gap = 18 * u;
-        float bx = panel.center.x - bw * 0.5f;
-        float by = panel.yMax - (bh * 2f + gap + 28 * u);
-
-        if (UiKit.Button(new Rect(bx, by, bw, bh), continueLabel))
-            gm.Restart();
-        if (UiKit.Button(new Rect(bx, by + bh + gap, bw, bh), "MENÚ"))
-            gm.GoToMenu();
+        var r = UGui.Rect(root, new Vector2(1f, 1f), new Vector2(1f, 1f),
+            new Vector2(-96f, -116f), new Vector2(-16f, -36f));
+        var btn = UGui.Button(r, "II", 36, UGui.CyanNeon, UGui.Bone);
+        btn.onClick.AddListener(() => PauseMenu.Show());
     }
 
-    /// <summary>Oscurece toda la pantalla (fondo de las pantallas finales).</summary>
-    void Overlay(float w, float h)
+    void BuildPowerUpContainer(Transform root)
     {
-        GUI.color = new Color(0f, 0f, 0f, 0.62f);
-        GUI.DrawTexture(new Rect(0, 0, w, h), Texture2D.whiteTexture);
-        GUI.color = Color.white;
+        powerUpContainer = new GameObject("PowerUps");
+        powerUpContainer.transform.SetParent(root, false);
+        var rt = powerUpContainer.AddComponent<RectTransform>();
+        UGui.Anchor(rt, 0f, 0f, 0.4f, 0.7f);
+        // Layout vertical para apilar los chips de power-up.
+        var vlg = powerUpContainer.AddComponent<VerticalLayoutGroup>();
+        vlg.spacing = 12f;
+        vlg.childAlignment = TextAnchor.UpperLeft;
+        vlg.padding = new RectOffset(20, 0, 20, 0);
+        vlg.childControlWidth = false;
+        vlg.childControlHeight = false;
+        vlg.childForceExpandWidth = false;
+        vlg.childForceExpandHeight = false;
+    }
+
+    void UpdatePowerUpIndicators()
+    {
+        var mgr = PowerUpManager.Instance;
+        if (mgr == null || powerUpContainer == null) return;
+
+        bool any = mgr.ShieldActive || mgr.RapidActive || mgr.SlowActive;
+        powerUpContainer.SetActive(any);
+        if (!any) return;
+
+        // Reconstruye los chips hijos (son pocos y cambian poco; simple y correcto).
+        for (int i = 0; i < powerUpContainer.transform.childCount; i++)
+            Destroy(powerUpContainer.transform.GetChild(i).gameObject);
+
+        if (mgr.ShieldActive) MakePowerUpChip("ESCUDO", UGui.CyanNeon, mgr.ShieldFrac);
+        if (mgr.RapidActive) MakePowerUpChip("CADENCIA", UGui.Gold, mgr.RapidFrac);
+        if (mgr.SlowActive) MakePowerUpChip("SLOW", new Color(0.36f, 0.56f, 1f), mgr.SlowFrac);
+    }
+
+    void MakePowerUpChip(string label, Color color, float frac)
+    {
+        var r = UGui.Rect(powerUpContainer.transform, new Vector2(0f, 1f), new Vector2(0f, 1f),
+            Vector2.zero, Vector2.zero);
+        r.sizeDelta = new Vector2(200f, 54f);
+        UGui.AddImage(r, UGui.PanelColor, UGui.Rounded);
+
+        var txt = UGui.Rect(r, Vector2.zero, Vector2.one, new Vector2(10f, 16f), new Vector2(-10f, -16f));
+        UGui.Text(txt, label, 24, color, TextAlignmentOptions.Left, bold: true);
+
+        var bar = UGui.Rect(r, new Vector2(0f, 0f), new Vector2(1f, 0f),
+            new Vector2(10f, 6f), new Vector2(-10f, 14f));
+        var fill = UGui.ProgressBar(bar, new Color(0, 0, 0, 0.6f), color);
+        fill.fillAmount = frac;
+    }
+
+    void BuildTutorial(Transform root)
+    {
+        tutorialObj = new GameObject("Tutorial");
+        tutorialObj.transform.SetParent(root, false);
+        var rt = tutorialObj.AddComponent<RectTransform>();
+        UGui.Anchor(rt, 0.2f, 0.3f, 0.8f, 0.4f);
+        UGui.AddImage(rt, new Color(UGui.PanelColor.r, UGui.PanelColor.g, UGui.PanelColor.b, 0.85f), UGui.Rounded);
+
+        var txt = UGui.Rect(rt, Vector2.zero, Vector2.one, new Vector2(20f, 0), new Vector2(-20f, 0));
+        UGui.Text(txt, "Arrastra para mover", 34, UGui.CyanNeon, TextAlignmentOptions.Center, bold: true);
+        tutorialObj.SetActive(tutorialActive);
+    }
+
+    void BuildVictoryScreen(Transform root)
+    {
+        victoryScreen = MakeEndScreen(root, "NIVEL SUPERADO", UGui.Lime, out var continueBtn, out var continueLabel);
+        continueLabel.text = "SIGUIENTE NIVEL";
+        continueBtn.onClick.AddListener(() => GameManager.Instance.Restart());
+        victoryScreen.SetActive(false);
+    }
+
+    void BuildDefeatScreen(Transform root)
+    {
+        defeatScreen = MakeEndScreen(root, "DERROTA", UGui.GateBad, out var retryBtn, out var retryLabel);
+        retryLabel.text = "REINTENTAR";
+        retryBtn.onClick.AddListener(() => GameManager.Instance.Restart());
+        defeatScreen.SetActive(false);
+    }
+
+    GameObject MakeEndScreen(Transform root, string title, Color titleColor,
+        out Button continueBtn, out TextMeshProUGUI continueLabel)
+    {
+        var screen = new GameObject("EndScreen");
+        screen.transform.SetParent(root, false);
+        var rt = screen.AddComponent<RectTransform>();
+        UGui.Anchor(rt, 0f, 0f, 1f, 1f);
+
+        // Overlay oscuro.
+        UGui.AddImage(rt, new Color(0, 0, 0, 0.62f), UGui.White, false);
+
+        // Panel central.
+        var panel = UGui.Rect(rt, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            new Vector2(-300f, -380f), new Vector2(300f, 380f));
+        UGui.AddImage(panel, UGui.PanelColor, UGui.Rounded);
+
+        // Título.
+        var titleR = UGui.Rect(panel, new Vector2(0f, 1f), new Vector2(1f, 1f),
+            new Vector2(0f, -320f), new Vector2(0f, -220f));
+        var t = UGui.Text(titleR, title, 52, titleColor, TextAlignmentOptions.Center, bold: true);
+        UGui.WithShadow(t, new Color(0, 0, 0, 0.5f), new Vector2(3, -3));
+
+        // Botón continuar.
+        var continueR = UGui.Rect(panel, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
+            new Vector2(-200f, 120f), new Vector2(200f, 200f));
+        continueBtn = UGui.Button(continueR, "", 36, UGui.CyanNeon, UGui.Bone);
+        continueLabel = continueR.GetComponentInChildren<TextMeshProUGUI>();
+
+        // Botón menú.
+        var menuR = UGui.Rect(panel, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
+            new Vector2(-200f, 30f), new Vector2(200f, 110f));
+        var menuBtn = UGui.Button(menuR, "MENÚ", 36, UGui.CyanNeon, UGui.Bone);
+        menuBtn.onClick.AddListener(() => GameManager.Instance.GoToMenu());
+
+        return screen;
     }
 }

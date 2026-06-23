@@ -1,13 +1,15 @@
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
-/// Overlay de PAUSA / AJUSTES (IMGUI) singleton para Zombie Rush. Se autoinstancia con
-/// PauseMenu.Show() (no requiere cableado en bootstraps). Mientras está visible pausa
-/// el juego (Time.timeScale = 0) y lo restaura al cerrarse.
+/// Overlay de PAUSA / AJUSTES (uGUI+TMP) singleton para Zombie Rush. Se autoinstancia
+/// con PauseMenu.Show() (no requiere cableado en bootstraps). Mientras está visible
+/// pausa el juego (Time.timeScale = 0) y lo restaura al cerrarse.
 ///
 /// Contenido: título "PAUSA", botones REANUDAR e ir a MENÚ (con SceneFade), y toggles
 /// de Música/SFX/Vibración leídos y escritos sobre SettingsStore. También sirve como
-/// panel de ajustes desde el menú principal (allí "MENÚ" simplemente cierra).
+/// panel de ajustes desde el menú principal.
 ///
 /// Robustez: si el GameObject se destruye con el overlay aún visible (p. ej. recarga
 /// de escena), restaura Time.timeScale = 1 en OnDisable/OnDestroy.
@@ -18,18 +20,17 @@ public class PauseMenu : MonoBehaviour
 
     bool visible;
     float prevTimeScale = 1f;
+    GameObject panel;
+    TextMeshProUGUI musicLabel, sfxLabel, vibrationLabel;
 
-    /// <summary>True mientras el overlay está mostrándose.</summary>
     public bool IsOpen => visible;
 
-    /// <summary>Crea (si hace falta) el singleton, lo muestra y pausa el juego.</summary>
     public static void Show()
     {
         EnsureInstance();
         Instance.Open();
     }
 
-    /// <summary>Oculta el overlay y restaura el Time.timeScale previo.</summary>
     public static void Hide()
     {
         if (Instance != null) Instance.Close();
@@ -51,6 +52,7 @@ public class PauseMenu : MonoBehaviour
             return;
         }
         Instance = this;
+        Build();
     }
 
     void Open()
@@ -59,6 +61,8 @@ public class PauseMenu : MonoBehaviour
         visible = true;
         prevTimeScale = Time.timeScale > 0f ? Time.timeScale : 1f;
         Time.timeScale = 0f;
+        if (panel != null) panel.SetActive(true);
+        RefreshToggles();
     }
 
     void Close()
@@ -66,11 +70,11 @@ public class PauseMenu : MonoBehaviour
         if (!visible) return;
         visible = false;
         Time.timeScale = prevTimeScale > 0f ? prevTimeScale : 1f;
+        if (panel != null) panel.SetActive(false);
     }
 
     void OnDisable()
     {
-        // Si nos desactivan/destruyen con el overlay abierto, no dejamos el juego congelado.
         if (visible)
         {
             visible = false;
@@ -78,56 +82,83 @@ public class PauseMenu : MonoBehaviour
         }
     }
 
-    void OnGUI()
+    void Build()
     {
-        if (!visible) return;
+        var canvas = UGui.MakeCanvas("PauseMenuCanvas", sortOrder: 50);
+        canvas.gameObject.transform.SetParent(transform, false);
+        // Persiste el canvas entre escenas.
+        DontDestroyOnLoad(canvas.gameObject);
 
-        UiKit.Init();
-        float w = Screen.width, h = Screen.height, u = UiKit.U;
+        panel = new GameObject("Panel");
+        panel.transform.SetParent(canvas.transform, false);
+        var rt = panel.AddComponent<RectTransform>();
+        UGui.Anchor(rt, 0f, 0f, 1f, 1f);
 
-        // Oscurecido de fondo.
-        GUI.color = new Color(0f, 0f, 0f, 0.6f);
-        GUI.DrawTexture(new Rect(0, 0, w, h), Texture2D.whiteTexture);
-        GUI.color = Color.white;
+        // Overlay oscuro.
+        UGui.AddImage(rt, new Color(0, 0, 0, 0.6f), UGui.White, false);
 
         // Panel central.
-        float pw = w * 0.78f, ph = h * 0.56f;
-        var panel = new Rect((w - pw) * 0.5f, (h - ph) * 0.5f, pw, ph);
-        UiKit.Panel(panel);
+        var card = UGui.Rect(rt, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            new Vector2(-280f, -360f), new Vector2(280f, 360f));
+        UGui.AddImage(card, UGui.PanelColor, UGui.Rounded);
 
         // Título.
-        var titleRect = new Rect(panel.x, panel.y + 28 * u, panel.width, 80 * u);
-        UiKit.ShadowLabel(titleRect, "PAUSA", UiKit.StyleHeader(u));
+        var titleR = UGui.Rect(card, new Vector2(0f, 1f), new Vector2(1f, 1f),
+            new Vector2(0f, -320f), new Vector2(0f, -240f));
+        UGui.Text(titleR, "PAUSA", 48, UGui.CyanNeon, TextAlignmentOptions.Center, bold: true);
 
-        float bx = panel.x + panel.width * 0.12f;
-        float bw = panel.width * 0.76f;
-        float bh = 92 * u;
-        float gap = 18 * u;
-        float y = panel.y + 130 * u;
+        // Botones.
+        float y = -180f;
+        var resume = MakeButton(card, y, "REANUDAR", UGui.CyanNeon);
+        resume.onClick.AddListener(Close);
+        y -= 104f;
 
-        if (UiKit.Button(new Rect(bx, y, bw, bh), "REANUDAR"))
-            Close();
-        y += bh + gap;
+        var menu = MakeButton(card, y, "MENÚ", UGui.CyanNeon);
+        menu.onClick.AddListener(() => { Close(); SceneFade.Load("MainMenu"); });
+        y -= 104f;
 
-        if (UiKit.Button(new Rect(bx, y, bw, bh), "MENÚ"))
+        // Toggles.
+        var music = MakeButton(card, y, "", new Color(0.15f, 0.18f, 0.28f, 1f));
+        musicLabel = music.GetComponentInChildren<TextMeshProUGUI>();
+        music.onClick.AddListener(() =>
         {
-            Close();
-            SceneFade.Load("MainMenu");
-        }
-        y += bh + gap + 8 * u;
-
-        // Toggles de ajustes (muestran su estado actual).
-        float th = 76 * u;
-        if (UiKit.Button(new Rect(bx, y, bw, th), $"Música: {OnOff(SettingsStore.MusicOn)}"))
             SettingsStore.MusicOn = !SettingsStore.MusicOn;
-        y += th + gap;
+            RefreshToggles();
+        });
+        y -= 88f;
 
-        if (UiKit.Button(new Rect(bx, y, bw, th), $"SFX: {OnOff(SettingsStore.SfxOn)}"))
+        var sfx = MakeButton(card, y, "", new Color(0.15f, 0.18f, 0.28f, 1f));
+        sfxLabel = sfx.GetComponentInChildren<TextMeshProUGUI>();
+        sfx.onClick.AddListener(() =>
+        {
             SettingsStore.SfxOn = !SettingsStore.SfxOn;
-        y += th + gap;
+            RefreshToggles();
+        });
+        y -= 88f;
 
-        if (UiKit.Button(new Rect(bx, y, bw, th), $"Vibración: {OnOff(SettingsStore.VibrationOn)}"))
+        var vib = MakeButton(card, y, "", new Color(0.15f, 0.18f, 0.28f, 1f));
+        vibrationLabel = vib.GetComponentInChildren<TextMeshProUGUI>();
+        vib.onClick.AddListener(() =>
+        {
             SettingsStore.VibrationOn = !SettingsStore.VibrationOn;
+            RefreshToggles();
+        });
+
+        panel.SetActive(false);
+    }
+
+    Button MakeButton(Transform parent, float yCenter, string label, Color bg)
+    {
+        var r = UGui.Rect(parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            new Vector2(-200f, yCenter - 40f), new Vector2(200f, yCenter + 40f));
+        return UGui.Button(r, label, 30, bg, UGui.Bone);
+    }
+
+    void RefreshToggles()
+    {
+        if (musicLabel != null) musicLabel.text = $"Música: {OnOff(SettingsStore.MusicOn)}";
+        if (sfxLabel != null) sfxLabel.text = $"SFX: {OnOff(SettingsStore.SfxOn)}";
+        if (vibrationLabel != null) vibrationLabel.text = $"Vibración: {OnOff(SettingsStore.VibrationOn)}";
     }
 
     static string OnOff(bool v) => v ? "ON" : "OFF";

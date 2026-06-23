@@ -10,10 +10,7 @@ public enum GameState
 
 /// <summary>
 /// Cerebro de la partida: mantiene el estado de la run, el marcador y la
-/// referencia al jugador. Singleton sencillo accesible con GameManager.Instance.
-///
-/// Por ahora sólo gestiona kills, tiempo y game over. En la Fase 2/3 aquí
-/// entrarán las monedas de la run y el paso a la meta-progresión.
+/// referencia al escuadrón. Singleton sencillo accesible con GameManager.Instance.
 /// </summary>
 public class GameManager : MonoBehaviour
 {
@@ -22,13 +19,9 @@ public class GameManager : MonoBehaviour
     public GameState State { get; private set; } = GameState.Playing;
     public int Kills { get; private set; }
     public int Coins { get; private set; }      // monedas de la run actual
-    public int CurrentWave { get; set; } = 1;   // la fija el EnemySpawner
     public float RunTime { get; private set; }
 
-    /// <summary>Referencia al jugador activo (dormante; lo usaba PlayerController pre-pivote).</summary>
-    public PlayerController Player { get; set; }
-
-    /// <summary>Referencia al escuadrón activo (Zombie Rush; la asigna el propio Squad).</summary>
+    /// <summary>Referencia al escuadrón activo (la asigna el propio Squad).</summary>
     public Squad Squad { get; set; }
 
     public int Level { get; set; } = 1;       // nivel actual (1..100)
@@ -63,14 +56,6 @@ public class GameManager : MonoBehaviour
 
     /// <summary>Suma monedas a la run (las llaman los pickups al recogerse).</summary>
     public void AddCoins(int amount) => Coins += amount;
-
-    /// <summary>Pasa la partida a game over e ingresa las monedas de la run al banco.</summary>
-    public void OnPlayerDied()
-    {
-        if (State == GameState.GameOver) return;
-        State = GameState.GameOver;
-        Economy.Add(Coins); // las monedas de la run pasan al banco persistente
-    }
 
     /// <summary>Derrota: el escuadrón se quedó sin soldados.</summary>
     public void OnSquadEmpty()
