@@ -1,0 +1,25 @@
+title: Zombie Rush: Squad Shooter
+short_description: Shooter arcade de multitud: crece tu escuadrón, cruza gates y arrasa hordas.
+full_description: |
+  ZOMBIE RUSH es un shooter arcade de multitud para móvil. Controlas un ESCUADRÓN que se
+  mueve lateralmente y dispara recto; creces cruzando GATES y rescatando supervivientes
+  mientras una horda de zombies te erosiona. Un dedo, sesiones de 1–3 min, vertical.
+
+  · Escuadrón-multitud: formación disco que se ensancha con tus soldados. Más unidades,
+    más cobertura de fuego.
+  · Gates y jaulas: elige entre +N, ×N y gates de arma; derriba jaulas para sumar
+    supervivientes. Tu poder crece DENTRO de la partida.
+  · 100 niveles deterministas: campaña con dificultad creciente, actos que introducen
+    mecánicas y un JEFE cada 10 niveles (con patrones de ataque).
+  · Power-ups in-run: bomba, ralentización, escudo y cadencia disparada que sueltan
+    los zombies.
+  · Armas con mecánica: pistola, subfusil y escopeta perforante.
+  · Eventos especiales: gate dorado, lluvia de jaulas y hordas élite.
+  · Meta-progresión: invierte tus monedas en el punto de partida (soldados y arma base).
+
+  Sin anuncios. Sin recolección de datos. Juego 100% offline.
+
+category: Game > Action
+content_rating: Teen (Fantasy Violence)
+privacy_policy_url: 
+website: https://github.com/luismigo91/zombie-dash
