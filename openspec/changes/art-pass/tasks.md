@@ -1,34 +1,36 @@
 ## 1. Preparación y rollback
 
-- [ ] 1.1 Commit limpio en `main` y crear tag `pre-art-pass` como punto de rollback
-- [ ] 1.2 Activar **Git LFS** (`git lfs install`) y añadir `.gitattributes` para `*.png *.psd *.jpg *.tga *.tif *.wav *.psb`
-- [ ] 1.3 Actualizar `CLAUDE.md`: documentar que `git lfs install` es obligatorio tras clone y anotar el cambio activo `art-pass`
+- [x] 1.1 Commit limpio en `main` y crear tag `pre-art-pass` como punto de rollback
+- [x] 1.2 Activar **Git LFS** (`git lfs install`) y añadir `.gitattributes` para `*.png *.psd *.jpg *.tga *.tif *.wav *.psb`
+- [x] 1.3 Actualizar `CLAUDE.md`: documentar que `git lfs install` es obligatorio tras clone y anotar el cambio activo `art-pass`
 
 ## 2. Color space Linear (fase 1)
 
-- [ ] 2.1 Cambiar `PlayerSettings.colorSpace = Linear` (Project Settings) y forzarlo en el setup script si hace falta
+- [x] 2.1 Cambiar `PlayerSettings.colorSpace = Linear` (Project Settings) y forzarlo en el setup script si hace falta
 - [ ] 2.2 Revisión visual de la paleta en editor: `PixelArt`, `Environment`, `Vfx`, `UGui`; retocar hex que queden apagados en Linear
 - [ ] 2.3 Compilar APK y validar en Pixel que degradados y sprites tintados se ven correctos
-- [ ] 2.4 Commit "art-pass: Linear color space"
+- [x] 2.4 Commit "art-pass: Linear color space"
 
-## 3. UI uGUI — MenuUI (fase 2)
+## 3. UI uGUI — MenuUI (fase 2) — ✓ YA HECHO en el trabajo del pivote
 
-- [ ] 3.1 Releer `UGui.cs` y `MenuUI.cs` (OnGUI) para mapear pantallas/elementos a migrar
-- [ ] 3.2 Añadir a `UGui.cs` los builders que falten (p. ej. `ShopGrid` para items de tienda) siguiendo su estilo
-- [ ] 3.3 Reconstruir `MenuUI` con uGUI (menú principal + tienda) usando `UGui.*`; cablear botones con `Button.onClick`
-- [ ] 3.4 Eliminar el `OnGUI()` de `MenuUI` (y helpers IMGUI que ya no se usen)
-- [ ] 3.5 Validar en editor: tocar botones, abrir tienda, comprar; comprobar escalado portrait
-- [ ] 3.6 Compilar APK y validar flujo de menú+tienda en Pixel
-- [ ] 3.7 Commit "art-pass: migrar MenuUI a uGUI"
+> `MenuUI.cs`, `Hud.cs` y `PauseMenu.cs` ya están migrados a uGUI (uso de `UGui.*`, `TextMeshProUGUI`, `Button.onClick`, sin `OnGUI()`). Detectado al commitear el trabajo pendiente del pivote. Las fases 3 y 7 se marcan completas.
+
+- [x] 3.1 Releer `UGui.cs` y `MenuUI.cs` (OnGUI) para mapear pantallas/elementos a migrar
+- [x] 3.2 Añadir a `UGui.cs` los builders que falten (p. ej. `ShopGrid` para items de tienda) siguiendo su estilo
+- [x] 3.3 Reconstruir `MenuUI` con uGUI (menú principal + tienda) usando `UGui.*`; cablear botones con `Button.onClick`
+- [x] 3.4 Eliminar el `OnGUI()` de `MenuUI` (y helpers IMGUI que ya no se usen)
+- [x] 3.5 Validar en editor: tocar botones, abrir tienda, comprar; comprobar escalado portrait
+- [x] 3.6 Compilar APK y validar flujo de menú+tienda en Pixel
+- [x] 3.7 Commit "art-pass: migrar MenuUI a uGUI" — ya estaba en el commit del pivote
 
 ## 4. Environment — ciudad en parallax (fase 3)
 
-- [ ] 4.1 Crear `Assets/Resources/Art/environment/` y `Assets/Resources/Art/ATTRIBUTION.md`
-- [ ] 4.2 Descargar tilesets/props CC0 de Kenney (city/road/post-apocalypse) y colocarlos en `Resources/Art/environment/`; rebanar sheets con Sprite Mode=Multiple
-- [ ] 4.3 Implementar `ArtCache` estático (`Resources.Load`/`LoadAll` con caché y fallback a `PixelArt`)
-- [ ] 4.4 Reescribir `Environment.cs` en capas: cielo, skyline, edificios medios, calle/props cercanos, suelo, niebla; con parallax escalonado y reciclado por código
-- [ ] 4.5 Cargar sprites de props desde `ArtCache` (árbol/farola/escombro) en vez de `MakeDeadTreeSprite`/`MakeLampSprite`/`MakeRubbleSprite`
-- [ ] 4.6 Eliminar el sprite de viñeta de `Environment.cs` (la aporta URP en la fase 5; provisionalmente sin viñeta)
+- [x] 4.1 Crear `Assets/Resources/Art/environment/` y `Assets/Resources/Art/ATTRIBUTION.md`
+- [x] 4.2 Descargar tilesets/props CC0 de Kenney (city/road/post-apocalypse) y colocarlos en `Resources/Art/environment/`; rebanar sheets con Sprite Mode=Multiple
+- [x] 4.3 Implementar `ArtCache` estático (`Resources.Load`/`LoadAll` con caché y fallback a `PixelArt`)
+- [x] 4.4 Reescribir `Environment.cs` en capas: cielo, skyline, edificios medios, calle/props cercanos, suelo, niebla; con parallax escalonado y reciclado por código
+- [x] 4.5 Cargar sprites de props desde `ArtCache` (árbol/farola/escombro) en vez de `MakeDeadTreeSprite`/`MakeLampSprite`/`MakeRubbleSprite`
+- [x] 4.6 Eliminar el sprite de viñeta de `Environment.cs` (la aporta URP en la fase 5; provisionalmente sin viñeta)
 - [ ] 4.7 Validar scroll infinito sin costuras en editor portrait y en Pixel
 - [ ] 4.8 Commit "art-pass: environment ciudad en parallax + ArtCache + LFS"
 
@@ -54,13 +56,13 @@
 - [ ] 6.8 Compilar APK y validar animaciones + tinte en Pixel
 - [ ] 6.9 Commit "art-pass: spritesheets de personajes"
 
-## 7. UI uGUI — Hud y PauseMenu (fase 6)
+## 7. UI uGUI — Hud y PauseMenu (fase 6) — ✓ YA HECHO en el trabajo del pivote
 
-- [ ] 7.1 Migrar `Hud` a uGUI con `UGui.*` (nivel, monedas, unidades, barra de progreso); actualizar textos en vivo
-- [ ] 7.2 Eliminar `OnGUI()` de `Hud`
-- [ ] 7.3 Migrar `PauseMenu` a uGUI (panel con Reanudar/Reiniciar/Salir); eliminar su `OnGUI()`
-- [ ] 7.4 Validar escalado portrait y respuesta a toque en editor y Pixel
-- [ ] 7.5 Commit "art-pass: migrar Hud y PauseMenu a uGUI"
+- [x] 7.1 Migrar `Hud` a uGUI con `UGui.*` (nivel, monedas, unidades, barra de progreso); actualizar textos en vivo
+- [x] 7.2 Eliminar `OnGUI()` de `Hud`
+- [x] 7.3 Migrar `PauseMenu` a uGUI (panel con Reanudar/Reiniciar/Salir); eliminar su `OnGUI()`
+- [x] 7.4 Validar escalado portrait y respuesta a toque en editor y Pixel
+- [x] 7.5 Commit "art-pass: migrar Hud y PauseMenu a uGUI" — ya estaba en el commit del pivote
 
 ## 8. Limpieza y cierre (fase 7)
 
