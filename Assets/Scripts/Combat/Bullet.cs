@@ -33,7 +33,7 @@ public class Bullet : MonoBehaviour
 
         if (b == null)
         {
-            GameObject go = Prims.MakeSprite("Bullet", PixelArt.Bullet, Color.white,
+            GameObject go = Prims.MakeSprite("Bullet", ArtCache.Sprite("combat/bullet"), Color.white,
                 new Vector2(0.28f, 0.45f), pos, sortingOrder: 5);
 
             var col = go.AddComponent<BoxCollider2D>();

@@ -205,7 +205,7 @@ public class Squad : MonoBehaviour
         }
         else
         {
-            go = Prims.MakeSprite("Unit", PixelArt.Player, Color.white,
+            go = Prims.MakeSprite("Unit", ArtCache.Soldier, Color.white,
                 new Vector2(unitSize, unitSize), transform.position, sortingOrder: 2);
             go.transform.SetParent(transform, worldPositionStays: false);
             go.transform.localPosition = new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f), 0f);
@@ -213,7 +213,7 @@ public class Squad : MonoBehaviour
         units.Add(go.transform);
 
         // Animación de marcha (el offset de fase aleatorio desincroniza la formación).
-        SpriteAnim.Play(go, PixelArt.SoldierMarch, 6f, true);
+        SpriteAnim.Play(go, ArtCache.SoldierMarch, 6f, true);
         // Pop de escala al nacer (gates/jaulas dan sensación de masa creciente).
         Vfx.Pop(go.transform);
     }
@@ -237,12 +237,12 @@ public class Squad : MonoBehaviour
     /// <summary>One-shot de disparo y, al acabar, restaura la marcha en bucle.</summary>
     System.Collections.IEnumerator ShootThenMarch(GameObject go)
     {
-        Sprite[] shoot = PixelArt.SoldierShoot;
+        Sprite[] shoot = ArtCache.SoldierShoot;
         SpriteAnim.Play(go, shoot, 12f, false);
         // Duración de la pasada (frames/fps) + un pequeño margen.
         float dur = (shoot != null && shoot.Length > 0) ? shoot.Length / 12f + 0.02f : 0f;
         yield return new WaitForSeconds(dur);
-        if (go != null) SpriteAnim.Play(go, PixelArt.SoldierMarch, 6f, true); // vuelve a marchar
+        if (go != null) SpriteAnim.Play(go, ArtCache.SoldierMarch, 6f, true); // vuelve a marchar
     }
 
     /// <summary>Quita una unidad del FRENTE (la más adelantada). La llaman los zombies al contacto.</summary>

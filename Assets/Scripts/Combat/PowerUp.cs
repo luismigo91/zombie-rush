@@ -120,7 +120,7 @@ public class PowerUp : MonoBehaviour
     public static PowerUp Spawn(Vector3 pos, PowerUpType type, float scrollSpeed)
     {
         Color c = TypeColors[(int)type];
-        var go = Prims.MakeSprite("PowerUp", PixelArt.Coin, c, new Vector2(0.5f, 0.5f), pos, sortingOrder: 4);
+        var go = Prims.MakeSprite("PowerUp", ArtCache.Sprite("items/coin"), c, new Vector2(0.5f, 0.5f), pos, sortingOrder: 4);
         var p = go.AddComponent<PowerUp>();
         p.type = type;
         p.scrollSpeed = scrollSpeed;

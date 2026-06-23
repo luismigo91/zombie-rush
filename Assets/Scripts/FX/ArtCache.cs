@@ -106,4 +106,45 @@ public static class ArtCache
             default:                          return null;
         }
     }
+
+    /// <summary>
+    /// Construye un array de sprites a partir de nombres individuales (útil para
+    /// sets de poses sueltas como los de Kenney, que no vienen en un sheet).
+    /// Carga cada sprite con <see cref="Sprite"/> (con caché y fallback) y
+    /// devuelve el array. Si todos fallan, devuelve array vacío.
+    /// </summary>
+    public static Sprite[] Array(params string[] paths)
+    {
+        var list = new List<Sprite>(paths.Length);
+        foreach (var p in paths)
+        {
+            var s = Sprite(p);
+            if (s != null) list.Add(s);
+        }
+        return list.Count > 0 ? list.ToArray() : System.Array.Empty<Sprite>();
+    }
+
+    // --- Arrays cacheados de animaciones de personajes (Kenney poses) ---
+    static Sprite[] _soldierMarch, _soldierShoot, _zombieShamble;
+
+    /// <summary>Pseudo-ciclo de marcha del soldado: [stand, hold] breathing.</summary>
+    public static Sprite[] SoldierMarch
+        => _soldierMarch ??= Array("characters/soldier_stand", "characters/soldier_hold", "characters/soldier_gun");
+
+    /// <summary>Pseudo-ciclo de disparo: [gun, hold] quick fire pose.</summary>
+    public static Sprite[] SoldierShoot
+        => _soldierShoot ??= Array("characters/soldier_gun", "characters/soldier_hold");
+
+    /// <summary>Pseudo-ciclo de arrastre del zombie: [stand, hold] lurching.</summary>
+    public static Sprite[] ZombieShamble
+        => _zombieShamble ??= Array("characters/zombie_stand", "characters/zombie_hold", "characters/zombie_gun");
+
+    /// <summary>Sprite individual del soldado (primer frame de marcha).</summary>
+    public static Sprite Soldier => SoldierMarch.Length > 0 ? SoldierMarch[0] : PixelArt.Player;
+
+    /// <summary>Sprite individual del zombie (primer frame de shamble).</summary>
+    public static Sprite Zombie => ZombieShamble.Length > 0 ? ZombieShamble[0] : PixelArt.Zombie;
+
+    /// <summary>Sprite del jefe (usa zombie_machine como silueta masiva).</summary>
+    public static Sprite Boss => Sprite("characters/zombie_machine") ?? PixelArt.Boss;
 }

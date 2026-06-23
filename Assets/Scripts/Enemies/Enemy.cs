@@ -52,7 +52,7 @@ public class Enemy : MonoBehaviour, IShootable
         // Animación de arrastre (grises tintables → el color por tipo sigue tiñendo
         // todos los frames). El offset de fase evita que la horda marche sincronizada.
         var anim = e.GetComponent<SpriteAnim>();
-        if (anim != null) { anim.enabled = true; SpriteAnim.Play(e.gameObject, PixelArt.ZombieShamble, 4f, true); }
+        if (anim != null) { anim.enabled = true; SpriteAnim.Play(e.gameObject, ArtCache.ZombieShamble, 4f, true); }
 
         if (!e.gameObject.activeSelf) e.gameObject.SetActive(true);
         Vfx.Pop(e.transform); // pop de escala al aparecer
@@ -61,7 +61,7 @@ public class Enemy : MonoBehaviour, IShootable
 
     static Enemy Create(Vector3 pos, Color color, Vector2 size)
     {
-        GameObject go = Prims.MakeSprite("Enemy", PixelArt.Zombie, color, size, pos, sortingOrder: 1);
+        GameObject go = Prims.MakeSprite("Enemy", ArtCache.Zombie, color, size, pos, sortingOrder: 1);
 
         var col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
@@ -83,7 +83,7 @@ public class Enemy : MonoBehaviour, IShootable
         transform.localScale = new Vector3(size.x, size.y, 1f);
         if (sr != null)
         {
-            sr.sprite = PixelArt.Zombie;
+            sr.sprite = ArtCache.Zombie;
             sr.color = color;
             sr.sortingOrder = 1;
         }
@@ -101,7 +101,7 @@ public class Enemy : MonoBehaviour, IShootable
         {
             e.sr.sortingOrder = 2;
             // Sprite dedicado de jefe (color final propio): se pinta tal cual.
-            e.sr.sprite = PixelArt.Boss;
+            e.sr.sprite = ArtCache.Boss;
             e.sr.color = Color.white;
             e.baseColor = Color.white;
         }
