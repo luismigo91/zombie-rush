@@ -52,3 +52,11 @@ crashlytics-build.properties
 
 # macOS
 .DS_Store
+
+# Keystore de firma y credenciales (NUNCA al repo)
+/[Kk]eystore/
+*.keystore
+*.jks
+
+# Config de la herramienta opencode (no es código del proyecto)
+/.opencode/
