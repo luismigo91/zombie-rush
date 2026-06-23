@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 /// <summary>
 /// Entorno de Zombie Rush con assets cargados desde <see cref="ArtCache"/>. Da
@@ -59,6 +60,7 @@ public class Environment : MonoBehaviour
     }
     readonly List<Prop> props = new List<Prop>();
     Sprite[] propSprites;
+    HashSet<int> lightPropIndices = new HashSet<int>(); // índices de props que emiten luz (farolas)
 
     float lastAspect = -1f;
 
@@ -170,10 +172,16 @@ public class Environment : MonoBehaviour
         };
 
         var list = new List<Sprite>();
+        int idx = 0;
         foreach (var n in names)
         {
             var s = ArtCache.Sprite(n);
-            if (s != null) list.Add(s);
+            if (s != null)
+            {
+                list.Add(s);
+                if (n.Contains("light")) lightPropIndices.Add(idx);
+                idx++;
+            }
         }
 
         if (list.Count == 0)
@@ -333,6 +341,10 @@ public class Environment : MonoBehaviour
         int type = Random.Range(0, propSprites.Length);
         pr.sr.sprite = propSprites[type];
 
+        // Si es un prop de luz (farola), añade/actualiza un Light2D hijo ámbar.
+        bool isLight = lightPropIndices.Contains(type);
+        UpdateLight(pr, isLight);
+
         bool left = Random.value < 0.5f;
         float lateral = Random.Range(0.62f, 0.98f) * halfW;
         float x = left ? -lateral : lateral;
@@ -391,5 +403,39 @@ public class Environment : MonoBehaviour
         byte g = (byte)System.Convert.ToInt32(rgb.Substring(2, 2), 16);
         byte b = (byte)System.Convert.ToInt32(rgb.Substring(4, 2), 16);
         return new Color32(r, g, b, 255);
+    }
+
+    /// <summary>
+    /// Añade o reutiliza un Light2D hijo (color ámbar #E8A23A) en el prop si es
+    /// una farola; lo desactiva si no. Creado por código (code-first).
+    /// </summary>
+    void UpdateLight(Prop pr, bool isLight)
+    {
+        Transform lightT = null;
+        for (int i = 0; i < pr.t.childCount; i++)
+            if (pr.t.GetChild(i).name == "Light2D") { lightT = pr.t.GetChild(i); break; }
+
+        if (!isLight)
+        {
+            if (lightT != null) lightT.gameObject.SetActive(false);
+            return;
+        }
+
+        GameObject lightGo;
+        if (lightT != null) { lightGo = lightT.gameObject; lightGo.SetActive(true); }
+        else
+        {
+            lightGo = new GameObject("Light2D");
+            lightGo.transform.SetParent(pr.t, false);
+        }
+
+        var l2d = lightGo.GetComponent<Light2D>();
+        if (l2d == null) l2d = lightGo.AddComponent<Light2D>();
+        l2d.lightType = Light2D.LightType.Point;
+        l2d.color = Hex("E8A23A"); // ámbar tenue de farola
+        l2d.intensity = 0.8f;
+        l2d.pointLightInnerRadius = 0.5f;
+        l2d.pointLightOuterRadius = 2.5f;
+        lightGo.transform.localPosition = Vector3.zero;
     }
 }

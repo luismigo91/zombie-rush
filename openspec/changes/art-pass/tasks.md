@@ -32,15 +32,15 @@
 - [x] 4.5 Cargar sprites de props desde `ArtCache` (árbol/farola/escombro) en vez de `MakeDeadTreeSprite`/`MakeLampSprite`/`MakeRubbleSprite`
 - [x] 4.6 Eliminar el sprite de viñeta de `Environment.cs` (la aporta URP en la fase 5; provisionalmente sin viñeta)
 - [ ] 4.7 Validar scroll infinito sin costuras en editor portrait y en Pixel
-- [ ] 4.8 Commit "art-pass: environment ciudad en parallax + ArtCache + LFS"
+- [x] 4.8 Commit "art-pass: environment ciudad en parallax + ArtCache + LFS"
 
 ## 5. URP 2D + post-proceso (fase 4)
 
-- [ ] 5.1 Instalar paquetes URP en `Packages/manifest.json` (`com.unity.universalrp` + `com.unity.2d.*` necesarios)
-- [ ] 5.2 Crear editor-script que genere el `UniversalRenderPipelineAsset` + `UniversalRendererData` (2D Renderer) y lo asigne en `GraphicsSettings` (sin Inspector); si no es factible, versionar en `Assets/Settings/` y referenciar por path
-- [ ] 5.3 Revisar materiales: el default de sprites sigue válido; migrar lo que haga falta
-- [ ] 5.4 Crear el `Volume` global con overrides: `Bloom` (threshold alto), `Vignette`, `ColorAdjustments` (contraste/saturación nocturnos), `FilmGrain` sutil; por código o prefab en `Resources/`
-- [ ] 5.5 Añadir `Light2D` a farolas del entorno (color ámbar `#E8A23A`); medir FPS en Pixel; si regresa, limitar a jefe/eliminar
+- [x] 5.1 Instalar paquetes URP en `Packages/manifest.json` (`com.unity.universalrp` + `com.unity.2d.*` necesarios)
+- [x] 5.2 Crear editor-script que genere el `UniversalRenderPipelineAsset` + `UniversalRendererData` (2D Renderer) y lo asigne en `GraphicsSettings` (sin Inspector); si no es factible, versionar en `Assets/Settings/` y referenciar por path
+- [x] 5.3 Revisar materiales: el default de sprites sigue válido; migrar lo que haga falta
+- [x] 5.4 Crear el `Volume` global con overrides: `Bloom` (threshold alto), `Vignette`, `ColorAdjustments` (contraste/saturación nocturnos), `FilmGrain` sutil; por código o prefab en `Resources/`
+- [x] 5.5 Añadir `Light2D` a farolas del entorno (color ámbar `#E8A23A`); medir FPS en Pixel; si regresa, limitar a jefe/eliminar
 - [ ] 5.6 Compilar APK y validar look neón + FPS en Pixel; ajustar Bloom/Vignette según dispositivo
 - [ ] 5.7 Commit "art-pass: migrar a URP 2D + post-proceso"
 

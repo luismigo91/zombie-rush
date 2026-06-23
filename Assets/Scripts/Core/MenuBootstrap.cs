@@ -26,6 +26,7 @@ public class MenuBootstrap : MonoBehaviour
 
         // Fondo ambiental del menú (cielo+suelo con scroll lento). Sustituye el color plano.
         Environment.BuildMenu();
+        PostProcessSetup.Build(); // volume URP también en el menú (look neón coherente).
 
         Music.PlayMenu();          // variante tranquila de menú
         SettingsStore.SyncMusic(); // respeta el flag de música guardado por la UI

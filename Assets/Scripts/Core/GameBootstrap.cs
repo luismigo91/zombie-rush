@@ -17,6 +17,7 @@ public class GameBootstrap : MonoBehaviour
     void Awake()
     {
         SetupCamera();
+        PostProcessSetup.Build(); // volume URP: bloom, viñeta, color adjustments, film grain.
         Music.PlayGame();          // variante con pulso para el juego
         SettingsStore.SyncMusic(); // respeta el flag de música guardado por la UI
         // El fondo (Environment.Build) lo arranca LevelRunner con la scrollSpeed real del nivel.
