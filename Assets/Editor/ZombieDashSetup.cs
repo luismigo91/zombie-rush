@@ -19,6 +19,7 @@ public static class ZombieDashSetup
     [MenuItem("Zombie Rush/Crear escena de juego")]
     public static void CreateGameScene()
     {
+        EnsureLinearColorSpace();
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         var go = new GameObject("Bootstrap");
@@ -34,6 +35,7 @@ public static class ZombieDashSetup
     [MenuItem("Zombie Rush/Crear escena de menú")]
     public static void CreateMenuScene()
     {
+        EnsureLinearColorSpace();
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         var go = new GameObject("MenuBootstrap");
@@ -50,6 +52,16 @@ public static class ZombieDashSetup
     {
         if (!AssetDatabase.IsValidFolder("Assets/Scenes"))
             AssetDatabase.CreateFolder("Assets", "Scenes");
+    }
+
+    /// <summary>Fuerza color space Linear (requisito del art-pass para degradados/bloom correctos).</summary>
+    public static void EnsureLinearColorSpace()
+    {
+        if (PlayerSettings.colorSpace != ColorSpace.Linear)
+        {
+            PlayerSettings.colorSpace = ColorSpace.Linear;
+            Debug.Log("Zombie Rush: color space fijado a Linear (art-pass).");
+        }
     }
 
     /// <summary>Orden de build: el menú primero (índice 0), luego el juego.</summary>
