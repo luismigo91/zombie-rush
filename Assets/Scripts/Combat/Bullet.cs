@@ -70,6 +70,12 @@ public class Bullet : MonoBehaviour
     {
         transform.position += (Vector3)(dir * speed * Time.deltaTime);
 
+        // La bala muere al salir por ARRIBA de la pantalla: sin esto recorría
+        // ~22 unidades y masacraba a las hordas fuera de cámara (el jugador no
+        // llegaba ni a verlas). El daño solo puede ocurrir en pantalla.
+        float topLimit = (Camera.main != null ? Camera.main.orthographicSize : 5f) + 0.4f;
+        if (transform.position.y > topLimit) { Despawn(); return; }
+
         life -= Time.deltaTime;
         if (life <= 0f) Despawn();
     }

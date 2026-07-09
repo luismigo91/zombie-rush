@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
 /// <summary>Tipo de encuentro colocado en el recorrido de un nivel.</summary>
-public enum EncounterType { Horde, GatePair, Cage, Barrier, GoldenGate, CageRain, EliteHorde }
+public enum EncounterType { Horde, GatePair, Cage, Barrier, GoldenGate, CageRain, EliteHorde, Obstacle }
 
 /// <summary>
 /// Un encuentro del recorrido en un instante dado (segundos desde el inicio).
@@ -28,6 +28,10 @@ public class LevelEvent
     // Barrier
     public float barrierHealth;
     public float barrierWidth;
+
+    // Obstacle (peligros de esquiva en la calzada)
+    public int obstacleCount;
+    public int obstacleDamage;
 }
 
 /// <summary>

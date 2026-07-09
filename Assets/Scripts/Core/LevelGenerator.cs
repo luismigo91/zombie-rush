@@ -34,7 +34,7 @@ public static class LevelGenerator
         def.bossHealth = isBoss ? 300f + n * 50f : 0f;
 
         // La amenaza escala con el NIVEL (n), no por acto → reto creciente nivel a nivel.
-        float zHp = 14f + n * 3f;         // vida de zombie ramping
+        float zHp = 26f + n * 5.5f;       // vida base ramping (además LevelRunner la escala con el escuadrón)
         float zSpd = 1.5f + n * 0.035f;   // velocidad ramping (cap natural)
 
         // Mecánicas desbloqueadas progresivamente (tutorial implícito, acto 1).
@@ -42,6 +42,7 @@ public static class LevelGenerator
         bool cages = n >= 3;
         bool barriers = n >= 4;
         bool weaponGates = n >= 4;
+        bool obstacles = n >= 3; // peligros de esquiva en la calzada
 
         float beat = Mathf.Max(1.35f, 2.8f - n * 0.045f); // hordas más frecuentes según sube el nivel
         float t = 2f;
@@ -97,17 +98,26 @@ public static class LevelGenerator
             }
             else
             {
-                if (barriers && rng.NextDouble() < 0.30)
+                double threatRoll = rng.NextDouble();
+                if (barriers && threatRoll < 0.30)
                 {
                     ev.type = EncounterType.Barrier;
                     ev.barrierHealth = zHp * (5f + act * 1.2f);
                     ev.barrierWidth = 2.2f;
                 }
+                else if (obstacles && threatRoll < 0.52)
+                {
+                    // Obstáculos en la calzada: esquiva o pierdes soldados al chocar.
+                    ev.type = EncounterType.Obstacle;
+                    ev.obstacleCount = 1 + (rng.NextDouble() < 0.35 ? 1 : 0);
+                    ev.obstacleDamage = 2 + act / 2;
+                }
                 else
                 {
                     ev.type = EncounterType.Horde;
-                    // Hordas densas desde el principio (el jugador pidió "muchos más").
-                    ev.hordeCount = 10 + Mathf.FloorToInt(n * 1.1f) + rng.Next(0, 6 + act * 2);
+                    // Hordas MUY densas: la presión de contacto es el corazón del
+                    // modo supervivencia (playtest: "subir número de zombies").
+                    ev.hordeCount = 16 + Mathf.FloorToInt(n * 1.4f) + rng.Next(0, 8 + act * 2);
                     ev.zombieHealth = zHp;
                     ev.zombieSpeed = zSpd;
                 }

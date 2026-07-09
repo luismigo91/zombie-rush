@@ -122,12 +122,12 @@ public class Hud : MonoBehaviour
     void BuildTopBar(Transform root)
     {
         // Fila superior con 3 chips.
-        unitsLabel = MakeChip(root, new Vector2(20f, -20f), new Vector2(270f, 84f), UGui.Lime);
-        levelLabel = MakeChip(root, new Vector2(290f, -20f), new Vector2(250f, 84f), UGui.CyanNeon);
-        coinsLabel = MakeChip(root, new Vector2(-480f, -20f), new Vector2(220f, 84f), UGui.Gold, rightAnchor: true);
+        unitsLabel = MakeChip(root, new Vector2(20f, -20f), new Vector2(270f, 84f), UGui.Lime, "icon_unit");
+        levelLabel = MakeChip(root, new Vector2(290f, -20f), new Vector2(250f, 84f), UGui.CyanNeon, "icon_star");
+        coinsLabel = MakeChip(root, new Vector2(-480f, -20f), new Vector2(220f, 84f), UGui.Gold, "icon_coin", rightAnchor: true);
     }
 
-    TextMeshProUGUI MakeChip(Transform root, Vector2 pos, Vector2 size, Color color, bool rightAnchor = false)
+    TextMeshProUGUI MakeChip(Transform root, Vector2 pos, Vector2 size, Color color, string iconName, bool rightAnchor = false)
     {
         var r = UGui.Rect(root, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, Vector2.zero);
         r.sizeDelta = size;
@@ -137,8 +137,8 @@ public class Hud : MonoBehaviour
         UGui.AddImage(r, UGui.PanelColor, UGui.Rounded);
 
         var icon = UGui.Rect(r, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-            new Vector2(10f, -20f), new Vector2(52f, 20f));
-        UGui.Icon(icon, color);
+            new Vector2(10f, -21f), new Vector2(52f, 21f));
+        UGui.Icon(icon, iconName, color);
 
         var txt = UGui.Rect(r, Vector2.zero, Vector2.one, new Vector2(66f, 0), new Vector2(-6f, 0));
         return UGui.Text(txt, "", 30, UGui.Bone, TextAlignmentOptions.Left, bold: true);
@@ -151,10 +151,14 @@ public class Hud : MonoBehaviour
             new Vector2(-224f, -116f), new Vector2(224f, -94f));
         progressFill = UGui.ProgressBar(bar, new Color(0.04f, 0.05f, 0.10f, 0.9f), UGui.CyanNeon);
 
-        // Marcador de jefe (calavera textual, visible en niveles múltiplo de 10).
+        // Marcador de jefe (icono calavera; glifo ☠ como fallback), visible en
+        // niveles múltiplo de 10.
         var marker = UGui.Rect(root, new Vector2(1f, 1f), new Vector2(1f, 1f),
             new Vector2(-8f, -132f), new Vector2(40f, -84f));
-        var m = UGui.Text(marker, "☠", 40, UGui.Bone, TextAlignmentOptions.Center, bold: true);
+        if (UGui.IconSprite("icon_skull") != null)
+            UGui.Icon(marker, "icon_skull", UGui.Bone);
+        else
+            UGui.Text(marker, "☠", 40, UGui.Bone, TextAlignmentOptions.Center, bold: true);
         bossMarker = marker.gameObject;
         bossMarker.SetActive(false);
     }
@@ -163,7 +167,7 @@ public class Hud : MonoBehaviour
     {
         var r = UGui.Rect(root, new Vector2(1f, 1f), new Vector2(1f, 1f),
             new Vector2(-96f, -116f), new Vector2(-16f, -36f));
-        var btn = UGui.Button(r, "II", 36, UGui.CyanNeon, UGui.Bone);
+        var btn = UGui.IconButton(r, "icon_pause", "II", 36, UGui.CyanNeon, UGui.Bone, iconSize: 44f);
         btn.onClick.AddListener(() => PauseMenu.Show());
     }
 
@@ -233,7 +237,8 @@ public class Hud : MonoBehaviour
 
     void BuildVictoryScreen(Transform root)
     {
-        victoryScreen = MakeEndScreen(root, "NIVEL SUPERADO", UGui.Lime, out var continueBtn, out var continueLabel);
+        victoryScreen = MakeEndScreen(root, "NIVEL SUPERADO", UGui.Lime, out var continueBtn, out var continueLabel,
+            withStars: true);
         continueLabel.text = "SIGUIENTE NIVEL";
         continueBtn.onClick.AddListener(() => GameManager.Instance.Restart());
         victoryScreen.SetActive(false);
@@ -248,7 +253,7 @@ public class Hud : MonoBehaviour
     }
 
     GameObject MakeEndScreen(Transform root, string title, Color titleColor,
-        out Button continueBtn, out TextMeshProUGUI continueLabel)
+        out Button continueBtn, out TextMeshProUGUI continueLabel, bool withStars = false)
     {
         var screen = new GameObject("EndScreen");
         screen.transform.SetParent(root, false);
@@ -268,6 +273,20 @@ public class Hud : MonoBehaviour
             new Vector2(0f, -320f), new Vector2(0f, -220f));
         var t = UGui.Text(titleR, title, 52, titleColor, TextAlignmentOptions.Center, bold: true);
         UGui.WithShadow(t, new Color(0, 0, 0, 0.5f), new Vector2(3, -3));
+
+        // Estrellas decorativas de victoria (solo si existe el PNG; sin lógica de rating).
+        if (withStars && UGui.IconSprite("icon_star") != null)
+        {
+            for (int i = -1; i <= 1; i++)
+            {
+                float s = i == 0 ? 116f : 92f;
+                var star = UGui.Rect(panel, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    Vector2.zero, Vector2.zero);
+                star.sizeDelta = new Vector2(s, s);
+                star.anchoredPosition = new Vector2(i * 130f, i == 0 ? -48f : -60f);
+                UGui.Icon(star, "icon_star", UGui.Gold);
+            }
+        }
 
         // Botón continuar.
         var continueR = UGui.Rect(panel, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),

@@ -22,6 +22,7 @@ public class PauseMenu : MonoBehaviour
     float prevTimeScale = 1f;
     GameObject panel;
     TextMeshProUGUI musicLabel, sfxLabel, vibrationLabel;
+    Image musicIcon, sfxIcon, vibrationIcon;
 
     public bool IsOpen => visible;
 
@@ -110,16 +111,19 @@ public class PauseMenu : MonoBehaviour
         // Botones.
         float y = -180f;
         var resume = MakeButton(card, y, "REANUDAR", UGui.CyanNeon);
+        AddButtonIcon(resume, "icon_play");
         resume.onClick.AddListener(Close);
         y -= 104f;
 
         var menu = MakeButton(card, y, "MENÚ", UGui.CyanNeon);
+        AddButtonIcon(menu, "icon_home");
         menu.onClick.AddListener(() => { Close(); SceneFade.Load("MainMenu"); });
         y -= 104f;
 
-        // Toggles.
+        // Toggles (el sprite on/off se fija en RefreshToggles).
         var music = MakeButton(card, y, "", new Color(0.15f, 0.18f, 0.28f, 1f));
         musicLabel = music.GetComponentInChildren<TextMeshProUGUI>();
+        musicIcon = AddButtonIcon(music, "icon_music");
         music.onClick.AddListener(() =>
         {
             SettingsStore.MusicOn = !SettingsStore.MusicOn;
@@ -129,6 +133,7 @@ public class PauseMenu : MonoBehaviour
 
         var sfx = MakeButton(card, y, "", new Color(0.15f, 0.18f, 0.28f, 1f));
         sfxLabel = sfx.GetComponentInChildren<TextMeshProUGUI>();
+        sfxIcon = AddButtonIcon(sfx, "icon_sfx");
         sfx.onClick.AddListener(() =>
         {
             SettingsStore.SfxOn = !SettingsStore.SfxOn;
@@ -138,6 +143,7 @@ public class PauseMenu : MonoBehaviour
 
         var vib = MakeButton(card, y, "", new Color(0.15f, 0.18f, 0.28f, 1f));
         vibrationLabel = vib.GetComponentInChildren<TextMeshProUGUI>();
+        vibrationIcon = AddButtonIcon(vib, "icon_vibration");
         vib.onClick.AddListener(() =>
         {
             SettingsStore.VibrationOn = !SettingsStore.VibrationOn;
@@ -154,11 +160,42 @@ public class PauseMenu : MonoBehaviour
         return UGui.Button(r, label, 30, bg, UGui.Bone);
     }
 
+    /// <summary>
+    /// Añade un icono PNG a la izquierda del botón y desplaza el texto para
+    /// dejarle hueco. Si el PNG no existe devuelve null y no toca el layout.
+    /// </summary>
+    Image AddButtonIcon(Button btn, string iconName)
+    {
+        if (UGui.IconSprite(iconName) == null) return null;
+        var rt = (RectTransform)btn.transform;
+        var ic = UGui.Rect(rt, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+            new Vector2(16f, -22f), new Vector2(60f, 22f));
+        var img = UGui.Icon(ic, iconName, UGui.Bone);
+
+        var label = btn.GetComponentInChildren<TextMeshProUGUI>();
+        if (label != null)
+        {
+            var lrt = (RectTransform)label.transform;
+            lrt.offsetMin = new Vector2(64f, lrt.offsetMin.y);
+        }
+        return img;
+    }
+
     void RefreshToggles()
     {
         if (musicLabel != null) musicLabel.text = $"Música: {OnOff(SettingsStore.MusicOn)}";
         if (sfxLabel != null) sfxLabel.text = $"SFX: {OnOff(SettingsStore.SfxOn)}";
         if (vibrationLabel != null) vibrationLabel.text = $"Vibración: {OnOff(SettingsStore.VibrationOn)}";
+
+        // Variante on/off del icono (vibración solo tiene una: se atenúa en OFF).
+        var ms = UGui.IconSprite(SettingsStore.MusicOn ? "icon_music" : "icon_music_off");
+        if (musicIcon != null && ms != null) musicIcon.sprite = ms;
+        var ss = UGui.IconSprite(SettingsStore.SfxOn ? "icon_sfx" : "icon_sfx_off");
+        if (sfxIcon != null && ss != null) sfxIcon.sprite = ss;
+        if (vibrationIcon != null)
+            vibrationIcon.color = SettingsStore.VibrationOn
+                ? UGui.Bone
+                : new Color(UGui.Bone.r, UGui.Bone.g, UGui.Bone.b, 0.35f);
     }
 
     static string OnOff(bool v) => v ? "ON" : "OFF";

@@ -32,6 +32,7 @@ public static class ArtCache
         var loaded = Resources.Load<Sprite>($"Art/{path}");
         if (loaded != null)
         {
+            loaded = Normalize(loaded);
             cache[path] = loaded;
             return loaded;
         }
@@ -61,6 +62,7 @@ public static class ArtCache
         var loaded = Resources.LoadAll<Sprite>($"Art/{folder}");
         if (loaded != null && loaded.Length > 0)
         {
+            for (int i = 0; i < loaded.Length; i++) loaded[i] = Normalize(loaded[i]);
             arrCache[folder] = loaded;
             return loaded;
         }
@@ -76,6 +78,25 @@ public static class ArtCache
         Debug.LogWarning($"[ArtCache] No se encontraron sprites en Art/{folder}/ (ni fallback).");
         arrCache[folder] = System.Array.Empty<Sprite>();
         return arrCache[folder];
+    }
+
+    /// <summary>
+    /// Normaliza la ESCALA del sprite: lo re-envuelve con pixelsPerUnit igual a su
+    /// dimensión mayor, de modo que todo asset mida ~1×1 unidad de mundo sea cual
+    /// sea su resolución en píxeles. Así las escalas del gameplay (localScale
+    /// absolutas: soldado 0.32, jefe 1.7, etc.) significan lo mismo para cualquier
+    /// arte. Los fallbacks de PixelArt ya nacen ~1u y no pasan por aquí.
+    /// </summary>
+    static Sprite Normalize(Sprite src)
+    {
+        if (src == null) return null;
+        float maxDim = Mathf.Max(src.rect.width, src.rect.height);
+        if (Mathf.Approximately(maxDim, src.pixelsPerUnit)) return src; // ya normalizado
+
+        var norm = UnityEngine.Sprite.Create(src.texture, src.rect,
+            new Vector2(0.5f, 0.5f), maxDim, 0, SpriteMeshType.FullRect);
+        norm.name = src.name + "_norm";
+        return norm;
     }
 
     /// <summary>Atajo para el fallback común: un sprite individual o null.</summary>

@@ -32,6 +32,10 @@ public static class BuildAndroid
         ApplyCommonAndroidSettings(development: true);
         EditorUserBuildSettings.buildAppBundle = false; // APK instalable directo
 
+        // El APK de desarrollo firma con la debug key de Unity, no con el
+        // keystore custom (que puede no tener password en sesión headless).
+        PlayerSettings.Android.useCustomKeystore = false;
+
         Directory.CreateDirectory("Builds");
         string apkPath = Path.Combine("Builds", "ZombieRush.apk");
 

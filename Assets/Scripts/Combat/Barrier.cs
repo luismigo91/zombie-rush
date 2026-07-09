@@ -16,7 +16,11 @@ public class Barrier : MonoBehaviour, IShootable
 
     public static Barrier Spawn(Vector3 pos, float health, float width, float fallSpeed)
     {
-        GameObject go = Prims.Make("Barrier", new Color(0.55f, 0.55f, 0.6f, 0.95f), new Vector2(width, 0.5f), pos, sortingOrder: 1);
+        // Barricada con arte (sprite normalizado 1×0.375u → escala Y 1.33 ≈ 0.5u de alto).
+        var sprite = ArtCache.Sprite("combat/barrier_full");
+        GameObject go = sprite != null
+            ? Prims.MakeSprite("Barrier", sprite, Color.white, new Vector2(width, 1.33f), pos, sortingOrder: 1)
+            : Prims.Make("Barrier", new Color(0.55f, 0.55f, 0.6f, 0.95f), new Vector2(width, 0.5f), pos, sortingOrder: 1);
 
         var col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
@@ -38,12 +42,18 @@ public class Barrier : MonoBehaviour, IShootable
         health -= damage;
         HitEffect.Burst(transform.position, new Color(0.8f, 0.8f, 0.85f), 3, 4f, 0.1f, 0.18f);
 
-        // Se va "vaciando" visualmente con la vida restante.
+        // Feedback de daño: por debajo de media vida cambia al arte agrietado y,
+        // además, se va desvaneciendo ligeramente con la vida restante.
         var sr = GetComponent<SpriteRenderer>();
         if (sr != null)
         {
+            if (health / maxHealth < 0.5f)
+            {
+                var damaged = ArtCache.Sprite("combat/barrier_damaged");
+                if (damaged != null) sr.sprite = damaged;
+            }
             Color c = sr.color;
-            c.a = 0.35f + 0.6f * Mathf.Clamp01(health / maxHealth);
+            c.a = 0.55f + 0.45f * Mathf.Clamp01(health / maxHealth);
             sr.color = c;
         }
 

@@ -6,16 +6,18 @@ using UnityEditor.Build;
 using UnityEngine;
 
 /// <summary>
-/// Genera por código el ICONO de la app y configura el SPLASH y el versionado,
-/// sin escribir assets binarios al disco (todo va directo a PlayerSettings).
+/// Configura ICONO de la app, SPLASH y versionado directo a PlayerSettings.
 ///
-/// El icono usa la paleta "noche apocalíptica neón": fondo degradado vertical
-/// (#14122A → #241A3A) con viñeta oscura, una silueta de zombie (cabeza disco,
-/// orejas, ojos rojos #FF3B3B) recortada por una mira de francotirador (anillo
-/// cian neón #3DD6F5 + cruz + marcas). Se aplican iconos legacy y adaptivos de
-/// Android. El splash queda con color de fondo de la paleta y, si la licencia lo
-/// permite, sin el logo de Unity. AppIconGen.Apply() orquesta todo y es
-/// idempotente (se puede llamar en cada build).
+/// Prioridad: PNG reales de branding en <c>Assets/Branding/</c>
+/// (app_icon_512 → iconos legacy, app_icon_fg_432/app_icon_bg_432 → capas del
+/// icono adaptivo Android, splash_1024x512 → logo del splash). Antes de cargarlos
+/// se asegura su TextureImporter (isReadable + sin compresión; el splash como
+/// Sprite). Si algún PNG falta o no es legible, cae al generador procedural
+/// original: fondo degradado (#14122A → #241A3A) con viñeta, silueta de zombie
+/// (ojos rojos #FF3B3B) y mira de francotirador cian neón (#3DD6F5).
+///
+/// AppIconGen.Apply() orquesta todo, es idempotente (se puede llamar en cada
+/// build) y sigue siendo el punto de entrada que invoca BuildAndroid.
 /// </summary>
 public static class AppIconGen
 {
@@ -44,16 +46,27 @@ public static class AppIconGen
     // ICONOS
     // ---------------------------------------------------------------------
 
+    /// <summary>Carpeta de los PNG de branding (fuera de Resources: solo editor/build).</summary>
+    const string BrandingDir = "Assets/Branding";
+
     static void ApplyIcons()
     {
-        // Textura base nítida a 512: el icono completo (fondo + silueta + mira).
-        Texture2D iconFull = BuildIconTexture(512, withBackground: true);
+        // IMPORTANTE: PlayerSettings solo puede PERSISTIR referencias a texturas
+        // que sean ASSETS en disco. Las texturas creadas en memoria (ScaleTexture
+        // o las procedurales) se pierden al serializar → Android acababa con el
+        // icono por defecto de Unity ("el logo no se aplica"). Por eso se asigna
+        // el asset de Branding TAL CUAL en todos los slots: Unity ya lo reescala
+        // por densidad al construir.
+        Texture2D iconFull = LoadBrandingTexture("app_icon_512.png");
+        if (iconFull == null)
+        {
+            Debug.LogWarning("AppIconGen: falta Assets/Branding/app_icon_512.png; no se tocan los iconos.");
+            return;
+        }
 
-        // Set legacy: tamaños estándar de Android, escalados desde la base.
-        int[] legacySizes = { 192, 144, 96, 72, 48, 36 };
-        var legacy = new Texture2D[legacySizes.Length];
-        for (int i = 0; i < legacySizes.Length; i++)
-            legacy[i] = ScaleTexture(iconFull, legacySizes[i]);
+        const int slots = 6; // tallas legacy estándar de Android (192..36)
+        var legacy = new Texture2D[slots];
+        for (int i = 0; i < slots; i++) legacy[i] = iconFull;
 
         try
         {
@@ -96,13 +109,17 @@ public static class AppIconGen
             var iconsObj = getIcons.Invoke(null, new object[] { NamedBuildTarget.Android, adaptive }) as Array;
             if (iconsObj == null || iconsObj.Length == 0) return;
 
-            // Capas reutilizables a 512 (se reescalan por slot/capa).
-            Texture2D background = BuildBackgroundTexture(512);                 // degradado opaco
-            Texture2D foreground = BuildIconTexture(512, withBackground: false); // silueta+mira con alpha
+            // Solo ASSETS persistentes (ver ApplyIcons); sin branding, no se toca nada.
+            Texture2D background = LoadBrandingTexture("app_icon_bg_432.png");
+            Texture2D foreground = LoadBrandingTexture("app_icon_fg_432.png");
+            if (background == null || foreground == null)
+            {
+                Debug.LogWarning("AppIconGen: faltan capas adaptativas en Assets/Branding; solo legacy.");
+                return;
+            }
 
             Type iconType = iconsObj.GetValue(0).GetType();
             PropertyInfo maxLayersProp = iconType.GetProperty("maxLayerCount");
-            MethodInfo getLayerWidth = iconType.GetMethod("GetLayerWidth", new[] { typeof(int) });
             MethodInfo setTexture = iconType.GetMethod("SetTexture", new[] { typeof(Texture2D), typeof(int) });
             if (setTexture == null) return;
 
@@ -111,13 +128,16 @@ public static class AppIconGen
                 object slot = iconsObj.GetValue(i);
                 int maxLayers = maxLayersProp != null ? (int)maxLayersProp.GetValue(slot) : 1;
 
-                int fgSize = LayerSize(getLayerWidth, slot, 0);
-                setTexture.Invoke(slot, new object[] { ScaleTexture(foreground, fgSize), 0 });
-
                 if (maxLayers > 1)
                 {
-                    int bgSize = LayerSize(getLayerWidth, slot, 1);
-                    setTexture.Invoke(slot, new object[] { ScaleTexture(background, bgSize), 1 });
+                    // Orden de capas del icono adaptativo en Unity: 0 = BACKGROUND,
+                    // 1 = FOREGROUND (estaba invertido). Assets directos, sin reescalar.
+                    setTexture.Invoke(slot, new object[] { background, 0 });
+                    setTexture.Invoke(slot, new object[] { foreground, 1 });
+                }
+                else
+                {
+                    setTexture.Invoke(slot, new object[] { foreground, 0 });
                 }
             }
 
@@ -183,15 +203,107 @@ public static class AppIconGen
         {
             PlayerSettings.SplashScreen.backgroundColor = SkyTop;
             PlayerSettings.SplashScreen.blurBackgroundImage = false;
+
+            // Logo real de branding: si existe el PNG, se muestra el splash con
+            // él; si no, se conserva el comportamiento anterior (splash oculto,
+            // solo color de fondo).
+            Sprite logo = LoadBrandingSprite("splash_1024x512.png");
+            if (logo != null)
+            {
+                PlayerSettings.SplashScreen.show = true;
+                PlayerSettings.SplashScreen.drawMode = PlayerSettings.SplashScreen.DrawMode.AllSequential;
+                PlayerSettings.SplashScreen.logos = new[]
+                {
+                    PlayerSettings.SplashScreenLogo.Create(2f, logo)
+                };
+            }
+            else
+            {
+                PlayerSettings.SplashScreen.show = false;
+            }
+
             // Si la licencia (Personal) no permite quitar el logo de Unity, el
-            // try/catch evita romper el build: queda solo el color de fondo.
-            PlayerSettings.SplashScreen.show = false;
+            // try/catch evita romper el build: queda el splash con ambos logos.
             PlayerSettings.SplashScreen.showUnityLogo = false;
         }
         catch (System.Exception e)
         {
-            Debug.LogWarning("AppIconGen: no se pudo ocultar el logo de Unity (licencia). Se conserva el color de fondo. " + e.Message);
+            Debug.LogWarning("AppIconGen: no se pudo configurar el splash por completo (¿licencia?). Se conserva el color de fondo. " + e.Message);
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // CARGA DE BRANDING (Assets/Branding/*.png)
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Carga un PNG de branding como Texture2D legible, ajustando antes su
+    /// importer si hace falta (isReadable + sin compresión, para poder
+    /// reescalarlo con GetPixelBilinear). Devuelve null si no existe o no quedó
+    /// legible: el llamante cae al procedural.
+    /// </summary>
+    static Texture2D LoadBrandingTexture(string fileName)
+    {
+        string path = $"{BrandingDir}/{fileName}";
+        if (!EnsureTextureImport(path, asSprite: false)) return null;
+
+        var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        if (tex == null)
+        {
+            Debug.LogWarning($"AppIconGen: no se pudo cargar {path}; se usa el procedural.");
+            return null;
+        }
+        if (!tex.isReadable)
+        {
+            Debug.LogWarning($"AppIconGen: {path} no quedó legible tras el reimport; se usa el procedural.");
+            return null;
+        }
+        return tex;
+    }
+
+    /// <summary>
+    /// Carga un PNG de branding como Sprite (para el logo del splash),
+    /// reimportándolo como Sprite sin compresión si hace falta.
+    /// </summary>
+    static Sprite LoadBrandingSprite(string fileName)
+    {
+        string path = $"{BrandingDir}/{fileName}";
+        if (!EnsureTextureImport(path, asSprite: true)) return null;
+
+        var spr = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        if (spr == null)
+            Debug.LogWarning($"AppIconGen: no se pudo cargar {path} como Sprite; splash sin logo.");
+        return spr;
+    }
+
+    /// <summary>
+    /// Asegura los ajustes de importación del PNG (solo reimporta si algo
+    /// cambia, para ser idempotente). Devuelve false si el asset no existe.
+    /// </summary>
+    static bool EnsureTextureImport(string path, bool asSprite)
+    {
+        var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (imp == null)
+        {
+            Debug.LogWarning($"AppIconGen: no existe {path}; se usa el procedural.");
+            return false;
+        }
+
+        bool dirty = false;
+        if (!imp.isReadable) { imp.isReadable = true; dirty = true; }
+        if (imp.textureCompression != TextureImporterCompression.Uncompressed)
+        {
+            imp.textureCompression = TextureImporterCompression.Uncompressed;
+            dirty = true;
+        }
+        if (imp.mipmapEnabled) { imp.mipmapEnabled = false; dirty = true; }
+        if (asSprite && imp.textureType != TextureImporterType.Sprite)
+        {
+            imp.textureType = TextureImporterType.Sprite;
+            dirty = true;
+        }
+        if (dirty) imp.SaveAndReimport();
+        return true;
     }
 
     // ---------------------------------------------------------------------

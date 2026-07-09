@@ -34,18 +34,52 @@ public class Environment : MonoBehaviour
     const int SORT_PROP_NEAR = -45;
     const int SORT_FOG       = -31;
 
+    // --- Temas de localización (uno cada 2 actos; el menú usa suburbs) ---
+    static readonly string[] THEMES = { "suburbs", "downtown", "cemetery", "industrial", "lab" };
+
+    /// <summary>Prop "luminoso" de cada tema (recibe un Light2D ámbar/propio).</summary>
+    static readonly Dictionary<string, string> THEME_LIGHT = new Dictionary<string, string>
+    {
+        { "suburbs",    "prop_suburbs_02"    }, // farola encendida
+        { "downtown",   "prop_downtown_05"   }, // neón roto
+        { "cemetery",   "prop_cemetery_06"   }, // farol de gas
+        { "industrial", "prop_industrial_07" }, // foco industrial
+        { "lab",        "prop_lab_02"        }, // luz de emergencia
+    };
+
+    /// <summary>
+    /// Tamaño de mundo BASE de cada prop (unidades, para su dimensión mayor), por
+    /// tema e índice 01..08. La normalización de ArtCache iguala todos los sprites
+    /// a ~1u, así que la escala relativa real (un cono ≪ un coche) se restaura
+    /// aquí. Referencia: un soldado mide 0.32u.
+    /// </summary>
+    static readonly Dictionary<string, float[]> THEME_PROP_SIZE = new Dictionary<string, float[]>
+    {
+        //                         01    02    03    04    05    06    07    08
+        { "suburbs",    new[] { 1.80f, 1.30f, 0.95f, 0.60f, 0.90f, 0.45f, 0.40f, 0.65f } }, // coche, farola, valla, arbusto, señal, tapa, cono, neumáticos
+        { "downtown",   new[] { 2.20f, 0.50f, 0.90f, 1.20f, 0.85f, 0.75f, 0.50f, 0.80f } }, // bus, escombros, barricada, semáforo, neón, cartel, basura, tablas
+        { "cemetery",   new[] { 0.55f, 0.70f, 1.60f, 0.95f, 1.40f, 0.90f, 0.75f, 0.60f } }, // lápida, cruz, árbol, verja, mausoleo, farol, banco, pozo
+        { "industrial", new[] { 1.90f, 0.50f, 0.80f, 1.10f, 0.90f, 0.95f, 1.10f, 0.70f } }, // contenedor, bidón, palé, tubería, charco, tubo, foco, bidones
+        { "lab",        new[] { 1.00f, 0.50f, 0.85f, 0.80f, 1.15f, 0.80f, 1.05f, 1.25f } }, // tanque, luz, cables, pantalla, cápsula, torreta, valla, puerta
+    };
+
     // --- Estado de scroll ---
     Camera cam;
     float scrollSpeed;
     bool scrollGated;
+    string theme = "suburbs";
 
     // --- Cielo ---
     Transform sky;
+    Transform skyline;
 
-    // --- Suelo: losas que se reciclan ---
+    // --- Suelo: losas que se reciclan (+ columnas de arcén a los lados) ---
     readonly List<Transform> groundSlabs = new List<Transform>();
+    readonly List<Transform> edgeColumns = new List<Transform>(); // [L0, L1, R0, R1]
+    Material edgeMat;
     float slabHeight;
     float slabsTotalSpan;
+    const float EDGE_W = 0.85f; // ancho del arcén en unidades
 
     // --- Niebla ---
     readonly List<Transform> fogBands = new List<Transform>();
@@ -60,6 +94,7 @@ public class Environment : MonoBehaviour
     }
     readonly List<Prop> props = new List<Prop>();
     Sprite[] propSprites;
+    float[] propBaseSizes; // tamaño de mundo base por sprite (alineado con propSprites)
     HashSet<int> lightPropIndices = new HashSet<int>(); // índices de props que emiten luz (farolas)
 
     float lastAspect = -1f;
@@ -81,6 +116,22 @@ public class Environment : MonoBehaviour
         var env = go.AddComponent<Environment>();
         env.scrollSpeed = Mathf.Max(0f, scrollSpeed);
         env.scrollGated = gated;
+        env.theme = ResolveTheme(gated);
+    }
+
+    /// <summary>Tema de localización para un nivel dado (uno cada 2 actos). Público:
+    /// lo usan también LevelRunner (obstáculos temáticos) y quien lo necesite.</summary>
+    public static string ThemeFor(int level)
+    {
+        int act = (level - 1) / 10;                       // 0..9
+        return THEMES[Mathf.Clamp(act / 2, 0, THEMES.Length - 1)];
+    }
+
+    /// <summary>Tema según el estado: menú → suburbs; juego → por nivel actual.</summary>
+    static string ResolveTheme(bool gated)
+    {
+        if (!gated) return THEMES[0];
+        return ThemeFor(GameManager.Instance != null ? GameManager.Instance.Level : 1);
     }
 
     // ----------------------------------------------------------------------
@@ -95,7 +146,9 @@ public class Environment : MonoBehaviour
         transform.position = Vector3.zero;
 
         BuildSky();
+        BuildSkyline();
         BuildGround();
+        BuildEdges();
         BuildProps();
         BuildFog();
 
@@ -128,24 +181,25 @@ public class Environment : MonoBehaviour
     /// </summary>
     void BuildGround()
     {
-        // Tile de asfalto de Resources/Art/environment/. Si falta, ArtCache
-        // devuelve null y usamos un sprite blanco tintado como fallback.
-        var tile = ArtCache.Sprite("environment/road_asphalt01");
-        if (tile == null)
-        {
-            Debug.LogWarning("[Environment] road_asphalt01 no encontrado; usando fallback blanco.");
-            tile = Sprite.Create(Texture2D.whiteTexture,
-                new Rect(0, 0, Texture2D.whiteTexture.width, Texture2D.whiteTexture.height),
-                new Vector2(0.5f, 0.5f), Texture2D.whiteTexture.width);
-        }
-
-        // El tile repite verticalmente (wrapMode Repeat) para un scroll sin costuras.
-        var mat = new Material(Shader.Find("Sprites/Default"));
-        mat.mainTexture = tile.texture;
-        mat.SetTextureScale("_MainTex", new Vector2(1f, 2f)); // repite 2 veces por losa
-
         for (int i = 0; i < 2; i++)
         {
+            // Tile del tema (variante distinta por losa para dar variedad), con
+            // fallback al asfalto genérico antiguo y, en último término, blanco.
+            var tile = ArtCache.Sprite($"environment/road_{theme}_0{i + 1}")
+                    ?? ArtCache.Sprite("environment/road_asphalt01");
+            if (tile == null)
+            {
+                Debug.LogWarning("[Environment] Sin tile de suelo; usando fallback blanco.");
+                tile = Sprite.Create(Texture2D.whiteTexture,
+                    new Rect(0, 0, Texture2D.whiteTexture.width, Texture2D.whiteTexture.height),
+                    new Vector2(0.5f, 0.5f), Texture2D.whiteTexture.width);
+            }
+
+            // El tile repite verticalmente (wrapMode Repeat) para scroll sin costuras.
+            var mat = new Material(Shader.Find("Sprites/Default"));
+            mat.mainTexture = tile.texture;
+            mat.SetTextureScale("_MainTex", new Vector2(1f, 2f)); // repite 2 veces por losa
+
             var go = MakeQuad("GroundSlab" + i, tile, Color.white, SORT_GROUND);
             var sr = go.GetComponent<SpriteRenderer>();
             if (sr != null) sr.sharedMaterial = mat;
@@ -153,36 +207,91 @@ public class Environment : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Arcenes: dos columnas de tile <c>edge_{tema}</c> a cada lado de la calzada
+    /// que scrollean con el suelo (mismo reciclado que las losas). Si el tema no
+    /// tiene arcén, se omiten sin ruido.
+    /// </summary>
+    void BuildEdges()
+    {
+        var tile = ArtCache.Sprite($"environment/edge_{theme}");
+        if (tile == null) return;
+
+        edgeMat = new Material(Shader.Find("Sprites/Default"));
+        edgeMat.mainTexture = tile.texture;
+
+        for (int i = 0; i < 4; i++) // [izq0, izq1, der0, der1]
+        {
+            var go = MakeQuad("Edge" + i, tile, Color.white, SORT_GROUND + 1);
+            var sr = go.GetComponent<SpriteRenderer>();
+            if (sr != null) sr.sharedMaterial = edgeMat;
+            edgeColumns.Add(go.transform);
+        }
+    }
+
+    /// <summary>
+    /// Skyline: franja de silueta lejana pegada al borde superior (horizonte
+    /// falso, como en la portada). Estática: es "distancia infinita".
+    /// </summary>
+    void BuildSkyline()
+    {
+        var s = ArtCache.Sprite($"environment/skyline_{theme}");
+        if (s == null) return;
+        skyline = MakeQuad("Skyline", s, new Color(1f, 1f, 1f, 0.85f), SORT_SKY + 5).transform;
+    }
+
     /// <summary>Props laterales cargados desde ArtCache, en pool de parallax.</summary>
     void BuildProps()
     {
-        // Cargar los props de Kenney desde Resources/Art/environment/.
-        var names = new[]
-        {
-            "environment/prop_barrel_blue",
-            "environment/prop_barrel_red",
-            "environment/prop_cone",
-            "environment/prop_rock1",
-            "environment/prop_rock2",
-            "environment/prop_rock3",
-            "environment/prop_barrier_red",
-            "environment/prop_barrier_white",
-            "environment/prop_light_white",
-            "environment/prop_light_yellow",
-        };
+        // Props del TEMA actual (prop_{tema}_01..08); si el tema no aporta
+        // suficientes, cae al set genérico antiguo (barriles/conos/rocas).
+        var names = new List<string>();
+        for (int i = 1; i <= 8; i++) names.Add($"environment/prop_{theme}_0{i}");
+
+        string lightName = THEME_LIGHT.TryGetValue(theme, out var ln) ? ln : null;
+        float[] themeSizes = THEME_PROP_SIZE.TryGetValue(theme, out var ts) ? ts : null;
 
         var list = new List<Sprite>();
+        var sizes = new List<float>();
         int idx = 0;
-        foreach (var n in names)
+        for (int i = 0; i < names.Count; i++)
         {
-            var s = ArtCache.Sprite(n);
+            var s = ArtCache.Sprite(names[i]);
             if (s != null)
             {
                 list.Add(s);
-                if (n.Contains("light")) lightPropIndices.Add(idx);
+                sizes.Add(themeSizes != null && i < themeSizes.Length ? themeSizes[i] : 0.8f);
+                if (lightName != null && names[i].EndsWith(lightName)) lightPropIndices.Add(idx);
                 idx++;
             }
         }
+
+        if (list.Count < 3)
+        {
+            // Fallback: set genérico pre-temas.
+            list.Clear(); sizes.Clear(); lightPropIndices.Clear(); idx = 0;
+            var legacy = new[]
+            {
+                "environment/prop_barrel_blue", "environment/prop_barrel_red",
+                "environment/prop_cone", "environment/prop_rock1",
+                "environment/prop_rock2", "environment/prop_rock3",
+                "environment/prop_barrier_red", "environment/prop_barrier_white",
+                "environment/prop_light_white", "environment/prop_light_yellow",
+            };
+            foreach (var n in legacy)
+            {
+                var s = ArtCache.Sprite(n);
+                if (s != null)
+                {
+                    list.Add(s);
+                    sizes.Add(0.8f);
+                    if (n.Contains("light")) lightPropIndices.Add(idx);
+                    idx++;
+                }
+            }
+        }
+
+        propBaseSizes = sizes.ToArray();
 
         if (list.Count == 0)
         {
@@ -268,6 +377,16 @@ public class Environment : MonoBehaviour
             slab.position = p;
         }
 
+        // Arcenes: mismo scroll y reciclado que las losas.
+        foreach (var col in edgeColumns)
+        {
+            Vector3 p = col.position;
+            p.y -= move;
+            if (p.y + slabHeight * 0.5f < -halfH)
+                p.y += slabHeight * 2f; // dos columnas apiladas por lado
+            col.position = p;
+        }
+
         // Props: parallax + reciclado lateral.
         float margin = 1.5f;
         for (int i = 0; i < props.Count; i++)
@@ -308,6 +427,14 @@ public class Environment : MonoBehaviour
 
         if (sky != null) sky.localScale = new Vector3(coverW, coverH, 1f);
 
+        // Skyline: franja pegada al borde superior, ancho completo (aspect 4:1).
+        if (skyline != null)
+        {
+            float sw = coverW;
+            skyline.localScale = new Vector3(sw, sw, 1f); // sprite 1×0.25u → alto = sw*0.25
+            skyline.position = new Vector3(0f, halfH - sw * 0.25f * 0.5f + 0.15f, 0f);
+        }
+
         // Suelo: cada losa cubre la pantalla; dos apiladas → bucle.
         slabHeight = coverH;
         slabsTotalSpan = slabHeight * groundSlabs.Count;
@@ -316,6 +443,24 @@ public class Environment : MonoBehaviour
             var slab = groundSlabs[i];
             slab.localScale = new Vector3(coverW, slabHeight, 1f);
             slab.position = new Vector3(0f, i * slabHeight, slab.position.z);
+        }
+
+        // Arcenes: columna de ancho fijo pegada a cada borde; tile cuadrado
+        // repetido en vertical vía material (mundo: EDGE_W de alto por repetición).
+        if (edgeColumns.Count == 4)
+        {
+            if (edgeMat != null)
+                edgeMat.SetTextureScale("_MainTex", new Vector2(1f, slabHeight / EDGE_W));
+            float ex = halfW - EDGE_W * 0.5f;
+            for (int i = 0; i < 4; i++)
+            {
+                bool leftSide = i < 2;
+                int stack = i % 2;
+                var col = edgeColumns[i];
+                // El lado derecho se espeja para que el bordillo mire a la calzada.
+                col.localScale = new Vector3(leftSide ? EDGE_W : -EDGE_W, slabHeight, 1f);
+                col.position = new Vector3(leftSide ? -ex : ex, stack * slabHeight, col.position.z);
+            }
         }
 
         // Niebla.
@@ -345,27 +490,26 @@ public class Environment : MonoBehaviour
         bool isLight = lightPropIndices.Contains(type);
         UpdateLight(pr, isLight);
 
+        // Pegados al arcén (pueden asomar medio fuera de pantalla), sin invadir
+        // la calzada: el arte normalizado mide ~1u y a escala grande llegaba al centro.
         bool left = Random.value < 0.5f;
-        float lateral = Random.Range(0.62f, 0.98f) * halfW;
+        float lateral = Random.Range(0.84f, 1.04f) * halfW;
         float x = left ? -lateral : lateral;
 
+        // Todos los props van EXACTAMENTE a la velocidad del suelo: es vista
+        // cenital y comparten plano con el asfalto; con parallax parecían
+        // "deslizarse" sobre la carretera.
+        pr.parallax = 1f;
+
+        // Tamaño REAL del objeto (tabla por tema: cono ≪ coche) ± variación leve.
+        float baseSize = propBaseSizes != null && type < propBaseSizes.Length ? propBaseSizes[type] : 0.8f;
+        float s = baseSize * Random.Range(0.85f, 1.15f);
+        pr.t.localScale = new Vector3(s, s, 1f);
+
+        // Dos "capas" visuales solo de tinte/orden (no de tamaño ni velocidad).
         bool near = Random.value < 0.5f;
-        if (near)
-        {
-            pr.parallax = Random.Range(1.0f, 1.2f);
-            float s = Random.Range(1.3f, 1.9f);
-            pr.t.localScale = new Vector3(s, s, 1f);
-            pr.sr.sortingOrder = SORT_PROP_NEAR;
-            pr.sr.color = Color.white;
-        }
-        else
-        {
-            pr.parallax = Random.Range(0.5f, 0.75f);
-            float s = Random.Range(0.8f, 1.2f);
-            pr.t.localScale = new Vector3(s, s, 1f);
-            pr.sr.sortingOrder = SORT_PROP_FAR;
-            pr.sr.color = PROP_FAR_TINT;
-        }
+        pr.sr.sortingOrder = near ? SORT_PROP_NEAR : SORT_PROP_FAR;
+        pr.sr.color = near ? Color.white : PROP_FAR_TINT;
 
         if (Random.value < 0.5f)
         {

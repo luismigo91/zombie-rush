@@ -53,16 +53,21 @@ public static class Vfx
             go = null;
         }
 
+        // Con arte real (fx/muzzle) el destello es el sprite en blanco; sin él,
+        // el quad amarillo de siempre.
+        var muzzleArt = ArtCache.Sprite("fx/muzzle");
         if (go == null)
         {
-            go = Prims.Make("VfxMuzzle", BulletCore, new Vector2(0.35f, 0.35f), pos, sortingOrder: 10);
+            go = muzzleArt != null
+                ? Prims.MakeSprite("VfxMuzzle", muzzleArt, Color.white, new Vector2(0.35f, 0.35f), pos, sortingOrder: 10)
+                : Prims.Make("VfxMuzzle", BulletCore, new Vector2(0.35f, 0.35f), pos, sortingOrder: 10);
         }
         else
         {
             go.transform.position = pos;
             go.transform.localScale = MuzzleBaseScale;
             var sr = go.GetComponent<SpriteRenderer>();
-            if (sr != null) sr.color = BulletCore;
+            if (sr != null) sr.color = muzzleArt != null ? Color.white : BulletCore;
             if (!go.activeSelf) go.SetActive(true);
         }
 

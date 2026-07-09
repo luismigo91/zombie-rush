@@ -32,6 +32,11 @@ public class Enemy : MonoBehaviour, IShootable
     float flashT; // temporizador del destello blanco al recibir daño
     float bossAttackT; // temporizador del patrón de jefe (invoca adds)
 
+    // Los sprites Kenney top-down-shooter vienen en vista lateral (mirando a la
+    // derecha). Los zombies avanzan hacia abajo → −90° Z (CW) pone la cabeza abajo
+    // (en el frente que los erosiona). El jefe usa el mismo facing.
+    static readonly Quaternion Facing = Quaternion.Euler(0f, 0f, -90f);
+
     /// <summary>Saca un zombie del pool (o crea uno) y lo lanza con sus stats.</summary>
     public static Enemy Spawn(Vector3 pos, float health, float speed, int coins, Color color, Vector2 size)
     {
@@ -62,6 +67,7 @@ public class Enemy : MonoBehaviour, IShootable
     static Enemy Create(Vector3 pos, Color color, Vector2 size)
     {
         GameObject go = Prims.MakeSprite("Enemy", ArtCache.Zombie, color, size, pos, sortingOrder: 1);
+        go.transform.rotation = Facing;
 
         var col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
@@ -79,7 +85,7 @@ public class Enemy : MonoBehaviour, IShootable
 
     void ResetVisual(Vector3 pos, Color color, Vector2 size)
     {
-        transform.SetPositionAndRotation(pos, Quaternion.identity);
+        transform.SetPositionAndRotation(pos, Facing);
         transform.localScale = new Vector3(size.x, size.y, 1f);
         if (sr != null)
         {
@@ -206,6 +212,11 @@ public class Enemy : MonoBehaviour, IShootable
 
     public void TakeDamage(float damage)
     {
+        // Invulnerable hasta ENTRAR en pantalla: el combate solo ocurre a la
+        // vista (refuerza el corte de balas en el borde superior de Bullet).
+        float screenTop = (Camera.main != null ? Camera.main.orthographicSize : 5f) + 0.2f;
+        if (transform.position.y > screenTop) return;
+
         if (sr == null)
         {
             sr = GetComponent<SpriteRenderer>();

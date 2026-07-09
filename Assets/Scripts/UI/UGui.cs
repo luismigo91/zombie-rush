@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -81,7 +82,10 @@ public static class UGui
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(RefW, RefH);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 0.5f;
+        // Portrait: el ancho es la cota ajustada en móviles alargados (aspect < ref).
+        // match=0 fija el canvas a 720 ref de ancho → banner/chips caben; el alto
+        // sobrante queda como holgura vertical (anclajes relativos lo absorben).
+        scaler.matchWidthOrHeight = 0f;
 
         go.AddComponent<GraphicRaycaster>();
 
@@ -142,6 +146,21 @@ public static class UGui
         return t;
     }
 
+    /// <summary>
+    /// Restringe un TMP a UNA sola línea: auto-size hacia abajo (hasta minSize)
+    /// para que quepa a lo ancho y, si aun así no cabe, corta con puntos suspensivos.
+    /// Evita los solapes verticales que produce el word-wrap en rects estrechos.
+    /// </summary>
+    public static TextMeshProUGUI FitOneLine(TextMeshProUGUI t, float minSize)
+    {
+        t.enableAutoSizing = true;
+        t.fontSizeMax = t.fontSize;
+        t.fontSizeMin = minSize;
+        t.textWrappingMode = TextWrappingModes.NoWrap;
+        t.overflowMode = TextOverflowModes.Ellipsis;
+        return t;
+    }
+
     /// <summary>Añade un efecto de sombra (UnityEngine.UI.Shadow) al componente.</summary>
     public static T WithShadow<T>(T cmp, Color color, Vector2 distance) where T : Component
     {
@@ -173,6 +192,58 @@ public static class UGui
         cb.disabledColor = new Color(0.6f, 0.6f, 0.6f, 0.5f);
         cb.fadeDuration = 0.08f;
         btn.colors = cb;
+        return btn;
+    }
+
+    // ---- Iconos PNG (Resources/Art/ui, cargados vía ArtCache) ----
+
+    /// <summary>Caché local de sprites de iconos UI (evita concat + lookup en ArtCache por llamada).</summary>
+    static readonly Dictionary<string, Sprite> iconSprites = new Dictionary<string, Sprite>();
+
+    /// <summary>
+    /// Sprite de icono UI por nombre corto (p. ej. "icon_pause" → Resources/Art/ui/icon_pause).
+    /// Devuelve null si el PNG no existe (ArtCache ya loguea el warning una vez).
+    /// </summary>
+    public static Sprite IconSprite(string name)
+    {
+        if (iconSprites.TryGetValue(name, out var s)) return s;
+        s = ArtCache.Sprite("ui/" + name);
+        iconSprites[name] = s;
+        return s;
+    }
+
+    /// <summary>
+    /// Icono PNG tintado ocupando el RectTransform dado (los PNG son monocolor hueso,
+    /// tintan bien con Image.color). Si el sprite no existe, cae al icono procedural
+    /// (cuadrado con borde neón) para no dejar el hueco vacío.
+    /// </summary>
+    public static Image Icon(RectTransform parent, string name, Color tint)
+    {
+        var s = IconSprite(name);
+        if (s == null) return Icon(parent, tint); // fallback procedural existente
+        var img = AddImage(parent, tint, s, sliced: false);
+        img.preserveAspect = true;
+        return img;
+    }
+
+    /// <summary>Overload sin tinte: icono PNG en blanco (color original hueso).</summary>
+    public static Image Icon(RectTransform parent, string name) => Icon(parent, name, Color.white);
+
+    /// <summary>
+    /// Botón cuyo contenido es un icono PNG centrado. Si el sprite no existe,
+    /// se queda con el texto fallback (mismo aspecto que Button()).
+    /// </summary>
+    public static Button IconButton(RectTransform rt, string iconName, string fallbackLabel,
+        float fontSize, Color bg, Color fg, float iconSize = 44f)
+    {
+        bool hasIcon = IconSprite(iconName) != null;
+        var btn = Button(rt, hasIcon ? "" : fallbackLabel, fontSize, bg, fg);
+        if (hasIcon)
+        {
+            var ic = Rect(rt, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            ic.sizeDelta = new Vector2(iconSize, iconSize);
+            Icon(ic, iconName, fg);
+        }
         return btn;
     }
 

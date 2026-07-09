@@ -53,7 +53,14 @@ public class SquadShooter : MonoBehaviour
         streams = Mathf.Min(streams, n);
 
         float interval = 1f / Mathf.Max(0.01f, fireRate * tier.fireRateMult * rapidFactor);
-        float damagePerStream = baseDamage * tier.damageMult * n / streams;
+        // DPS SUBLINEAL con el nº de soldados: lineal (×n) hacía que crecer
+        // multiplicara la potencia ×5-12 y ninguna curva de vida podía perseguirlo
+        // (todo moría antes de llegar). effN ≈ n^0.72 calibrado para que con ~10-12
+        // soldados (inicio) rinda igual que antes; con 40 rinde ~2.4× (no 4×) y con
+        // 100 ~4.4× (no 10×). Crecer sigue importando: más ancho de fuego, más
+        // escudo y más DPS, pero la horda mantiene la presión de contacto.
+        float effN = 1.9f * Mathf.Pow(n, 0.72f);
+        float damagePerStream = baseDamage * tier.damageMult * effN / streams;
         float cx = transform.position.x;
         float y = squad.TopY;
 

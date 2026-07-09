@@ -88,7 +88,16 @@ public class LevelRunner : MonoBehaviour
                 // (evita que el snowball convierta la run en un paseo).
                 int squadN = GameManager.Instance != null && GameManager.Instance.Squad != null
                     ? GameManager.Instance.Squad.Count : 0;
-                int count = Mathf.Min(120, ev.hordeCount + Mathf.FloorToInt(squadN * 0.4f));
+                int count = Mathf.Min(160, ev.hordeCount + Mathf.FloorToInt(squadN * 0.55f));
+                // MODO SUPERVIVENCIA (decisión de diseño del playtest): la amenaza
+                // escala MÁS RÁPIDO que el escuadrón. El DPS del jugador crece
+                // sublineal (n^0.72, ver SquadShooter) mientras la vida de la horda
+                // crece lineal con los soldados y con el progreso del nivel → ir
+                // "sobrado" es imposible de sostener; son los power-ups y los gates
+                // de arma los que lo hacen pasable, y se nota que cuesta.
+                float progress = Mathf.Clamp01(t / def.duration);
+                float hpScale = (1f + squadN * 0.07f) * (1f + progress * 1.0f);
+                float spdScale = 1f + progress * 0.35f;
                 for (int i = 0; i < count; i++)
                 {
                     float px = Random.Range(minX, maxX);
@@ -113,7 +122,7 @@ public class LevelRunner : MonoBehaviour
                     }
 
                     Enemy.Spawn(new Vector3(px, topY + i * 0.5f, 0f),
-                        ev.zombieHealth * hpMul, ev.zombieSpeed * speedMul, 1,
+                        ev.zombieHealth * hpMul * hpScale, ev.zombieSpeed * speedMul * spdScale, 1,
                         color, new Vector2(size, size));
                 }
                 break;
@@ -149,8 +158,33 @@ public class LevelRunner : MonoBehaviour
                 }
                 break;
 
+            case EncounterType.Obstacle:
+            {
+                // Peligros de esquiva EN LA CALZADA con arte del tema actual:
+                // tocar uno cuesta soldados (lo resuelve Obstacle al contacto).
+                string theme = Environment.ThemeFor(def.index);
+                var variants = ObstacleVariantsFor(theme);
+                float roadHalf = maxX * 0.62f; // dentro de la calzada, lejos del arcén
+                for (int i = 0; i < ev.obstacleCount; i++)
+                {
+                    var v = variants[Random.Range(0, variants.Length)];
+                    float px = Random.Range(-roadHalf, roadHalf);
+                    // El daño crece un poco con el tamaño del objeto (chocar con un
+                    // coche duele más que con una lápida).
+                    int dmg = ev.obstacleDamage + (v.size > 1.2f ? 2 : 0);
+                    Obstacle.Spawn(new Vector3(px, topY + i * 2.2f, 0f), v.key, v.size, dmg, def.scrollSpeed);
+                }
+                break;
+            }
+
             case EncounterType.EliteHorde:
+            {
                 // Horda élite: zombies más duros y con sesgo a tanks/corredores.
+                // Su vida también sigue al escuadrón (ver caso Horde).
+                int eliteSquadN = GameManager.Instance != null && GameManager.Instance.Squad != null
+                    ? GameManager.Instance.Squad.Count : 0;
+                float eliteProgress = Mathf.Clamp01(t / def.duration);
+                float eliteHpScale = (1f + eliteSquadN * 0.07f) * (1f + eliteProgress * 1.0f);
                 int eliteN = Mathf.Min(80, ev.hordeCount);
                 for (int i = 0; i < eliteN; i++)
                 {
@@ -161,10 +195,21 @@ public class LevelRunner : MonoBehaviour
                     else if (roll < 0.80f) { color = new Color(0.91f, 0.78f, 0.29f); speedMul = 1.7f; size = 0.45f; hpMul = 1.2f; } // runner
                     else { color = new Color(0.50f, 0.69f, 0.31f); speedMul = 1f; size = 0.55f; hpMul = 2.2f; } // normal duro
                     Enemy.Spawn(new Vector3(px, topY + i * 0.5f, 0f),
-                        ev.zombieHealth * hpMul, ev.zombieSpeed * speedMul, 2,
+                        ev.zombieHealth * hpMul * eliteHpScale, ev.zombieSpeed * speedMul, 2,
                         color, new Vector2(size, size));
                 }
                 break;
+            }
         }
     }
+
+    /// <summary>Variantes de obstáculo (clave de ArtCache + tamaño de mundo) por tema.</summary>
+    static (string key, float size)[] ObstacleVariantsFor(string theme) => theme switch
+    {
+        "downtown"   => new[] { ("environment/prop_downtown_03", 0.9f),  ("environment/prop_downtown_07", 0.6f)  }, // barricada, basura
+        "cemetery"   => new[] { ("environment/prop_cemetery_01", 0.6f),  ("environment/prop_cemetery_05", 1.3f)  }, // lápida, mausoleo
+        "industrial" => new[] { ("environment/prop_industrial_01", 1.6f),("environment/prop_industrial_08", 0.7f) }, // contenedor, bidones
+        "lab"        => new[] { ("environment/prop_lab_05", 1.1f),       ("environment/prop_lab_06", 0.8f)       }, // cápsula, torreta
+        _            => new[] { ("environment/prop_suburbs_01", 1.6f),   ("environment/prop_suburbs_08", 0.7f)   }, // coche, neumáticos
+    };
 }

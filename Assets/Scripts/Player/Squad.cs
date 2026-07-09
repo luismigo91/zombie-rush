@@ -54,6 +54,11 @@ public class Squad : MonoBehaviour
 
     const float GoldenAngle = 2.39996323f; // radianes
 
+    // Rotación de los sprites Kenney top-down-shooter: vienen mirando a la derecha
+    // (vista lateral). El escuadrón avanza hacia arriba → +90° Z (CCW) pone la
+    // cabeza arriba. Los zombies se rotan al revés (miran hacia abajo).
+    static readonly Quaternion UnitFacing = Quaternion.Euler(0f, 0f, 90f);
+
     void Start()
     {
         cam = Camera.main;
@@ -201,6 +206,7 @@ public class Squad : MonoBehaviour
             if (go.transform.parent != transform) go.transform.SetParent(transform, false);
             go.transform.localPosition = new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f), 0f);
             go.transform.localScale = new Vector3(unitSize, unitSize, 1f);
+            go.transform.localRotation = UnitFacing;
             if (!go.activeSelf) go.SetActive(true);
         }
         else
@@ -209,6 +215,7 @@ public class Squad : MonoBehaviour
                 new Vector2(unitSize, unitSize), transform.position, sortingOrder: 2);
             go.transform.SetParent(transform, worldPositionStays: false);
             go.transform.localPosition = new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f), 0f);
+            go.transform.localRotation = UnitFacing;
         }
         units.Add(go.transform);
 

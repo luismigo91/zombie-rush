@@ -1,20 +1,29 @@
 # Atribución de assets
 
-Todos los assets de `Assets/Resources/Art/` son **CC0** (Creative Commons Zero).
 No se admiten licencias *No-Derivatives* (CC-ND).
 
-## environment/
+## Arte original del juego (2026)
 
-- `road_asphalt01.png`–`road_asphalt08.png` — Autor: Kenney — Licencia: CC0 — URL: https://kenney.nl/assets/racing-pack
-- `prop_barrel_blue.png`, `prop_barrel_red.png` — Autor: Kenney — Licencia: CC0 — URL: https://kenney.nl/assets/racing-pack
-- `prop_barrier_red.png`, `prop_barrier_white.png` — Autor: Kenney — Licencia: CC0 — URL: https://kenney.nl/assets/racing-pack
-- `prop_cone.png` — Autor: Kenney — Licencia: CC0 — URL: https://kenney.nl/assets/racing-pack
-- `prop_rock1.png`, `prop_rock2.png`, `prop_rock3.png` — Autor: Kenney — Licencia: CC0 — URL: https://kenney.nl/assets/racing-pack
-- `prop_light_white.png`, `prop_light_yellow.png` — Autor: Kenney — Licencia: CC0 — URL: https://kenney.nl/assets/racing-pack
-- `tds_tile_01.png`–`tds_tile_10.png` — Autor: Kenney — Licencia: CC0 — URL: https://kenney.nl/assets/top-down-shooter
+Generado con **Claude Design** a partir del brief `docs/ART_BRIEF.md`, para este
+proyecto (arte original, todos los derechos del proyecto). El wordmark de
+`Assets/Branding/` se generó por código (PIL) en el propio repo.
 
-## characters/
+- `characters/*.png` — soldado, zombie base (tintable), jefe y superviviente.
+- `combat/*.png` — bala, gates, jaula (intacta/rota), barrera (intacta/dañada).
+- `items/*.png` (+ `items/coin_spin/`) — moneda, giro de moneda, cofre.
+- `fx/muzzle.png` — fogonazo.
+- `environment/road_<tema>_*.png`, `edge_<tema>.png`, `prop_<tema>_*.png`,
+  `skyline_<tema>.png` — 5 localizaciones: suburbs, downtown, cemetery,
+  industrial, lab.
+- `ui/icon_*.png` — iconos de interfaz.
+- `Assets/Branding/*.png` — icono de app, splash, feature graphic, social preview.
 
-- `zombie_*.png` (stand, hold, gun, machine, reload, silencer) — Autor: Kenney — Licencia: CC0 — URL: https://kenney.nl/assets/top-down-shooter
-- `soldier_*.png` (stand, hold, gun, machine, reload, silencer) — Autor: Kenney — Licencia: CC0 — URL: https://kenney.nl/assets/top-down-shooter
-- `survivor_*.png` (stand, hold, gun) — Autor: Kenney — Licencia: CC0 — URL: https://kenney.nl/assets/top-down-shooter
+## Fallbacks CC0 de Kenney (sin uso activo; solo respaldo)
+
+Se conservan como *fallback* si faltara un asset temático. Autor: **Kenney** —
+Licencia: **CC0** — https://kenney.nl
+
+- `environment/road_asphalt01.png`–`road_asphalt08.png` (racing-pack)
+- `environment/prop_barrel_*.png`, `prop_barrier_*.png`, `prop_cone.png`,
+  `prop_rock*.png`, `prop_light_*.png` (racing-pack)
+- `environment/tds_tile_01.png`–`tds_tile_10.png` (top-down-shooter)

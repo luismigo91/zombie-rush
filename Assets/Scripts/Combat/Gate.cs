@@ -23,7 +23,14 @@ public class Gate : MonoBehaviour
 
     public static Gate Spawn(Vector3 pos, GateEffect effect, float value, float width, float fallSpeed)
     {
-        GameObject go = Prims.Make("Gate", ColorFor(effect), new Vector2(width, 0.35f), pos, sortingOrder: 0);
+        // Arte del portal: cian (crecimiento) o rojo (trampa). El sprite normalizado
+        // mide 1×0.5 unidades → escala Y 1.1 ≈ 0.55u de alto. Si falta el arte,
+        // cae a la barra de color plana de siempre.
+        string key = effect == GateEffect.Trap ? "combat/gate_bad" : "combat/gate_good";
+        var sprite = ArtCache.Sprite(key);
+        GameObject go = sprite != null
+            ? Prims.MakeSprite("Gate", sprite, Color.white, new Vector2(width, 1.1f), pos, sortingOrder: 0)
+            : Prims.Make("Gate", ColorFor(effect), new Vector2(width, 0.35f), pos, sortingOrder: 0);
 
         var g = go.AddComponent<Gate>();
         g.effect = effect;
@@ -31,7 +38,59 @@ public class Gate : MonoBehaviour
         g.fallSpeed = fallSpeed;
         g.halfWidth = width * 0.5f;
         g.prevY = pos.y;
+
+        AddLabel(go, effect, value);
         return g;
+    }
+
+    /// <summary>
+    /// Etiqueta persistente con el valor del gate ("+5", "×2", "−3", "ARMA+"),
+    /// como TextMesh hijo: vive en mundo y baja con el gate. Compensa la escala
+    /// NO uniforme del padre (ancho×alto) para que el texto no salga estirado.
+    /// </summary>
+    static void AddLabel(GameObject gate, GateEffect effect, float value)
+    {
+        Font font = null;
+        try { font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); } catch { }
+        if (font == null) { try { font = Resources.GetBuiltinResource<Font>("Arial.ttf"); } catch { } }
+        if (font == null) return; // sin fuente no hay etiqueta (el texto flotante al cruzar sigue)
+
+        var lgo = new GameObject("GateLabel");
+        lgo.transform.SetParent(gate.transform, false);
+        Vector3 ps = gate.transform.localScale;
+        lgo.transform.localScale = new Vector3(
+            ps.x != 0f ? 1f / ps.x : 1f,
+            ps.y != 0f ? 1f / ps.y : 1f, 1f);
+
+        var tm = lgo.AddComponent<TextMesh>();
+        tm.text = effect switch
+        {
+            GateEffect.Add    => "+" + Mathf.RoundToInt(value),
+            GateEffect.Mult   => "×" + value.ToString("0.#"),
+            GateEffect.Trap   => "−" + Mathf.RoundToInt(value),
+            _                 => "ARMA+",
+        };
+        tm.font = font;
+        tm.fontSize = 60;
+        // Se encoge con la longitud para que textos largos ("ARMA+") no se salgan
+        // del panel: 2 chars → tamaño pleno; 5 chars → ~60%.
+        tm.characterSize = 0.045f * Mathf.Min(1f, 3f / Mathf.Max(1, tm.text.Length));
+        tm.fontStyle = FontStyle.Bold;
+        tm.anchor = TextAnchor.MiddleCenter;
+        tm.alignment = TextAlignment.Center;
+        tm.color = effect switch
+        {
+            GateEffect.Trap   => new Color(1f, 0.92f, 0.88f), // claro sobre marco rojo
+            GateEffect.Weapon => new Color(1f, 0.82f, 0.23f), // ámbar (#FFD23A)
+            _                 => new Color(0.96f, 0.95f, 0.91f), // hueso (#F4F1E8)
+        };
+
+        var mr = lgo.GetComponent<MeshRenderer>();
+        if (mr != null)
+        {
+            mr.sharedMaterial = font.material; // sin esto el texto sale rosa
+            mr.sortingOrder = 6;               // por encima del arte del gate
+        }
     }
 
     static Color ColorFor(GateEffect e) => e switch

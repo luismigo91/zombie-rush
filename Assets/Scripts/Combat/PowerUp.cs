@@ -30,7 +30,7 @@ public class PowerUpManager : MonoBehaviour
     public float bombRadius = 12f;
 
     [Header("Cadena de eventos")]
-    public float dropChance = 0.05f; // probabilidad de soltar power-up por zombie
+    public float dropChance = 0.045f; // probabilidad por zombie: escaso a propósito (supervivencia)
 
     // Tiempo restante de cada efecto temporal (>0 → activo).
     float shieldT, rapidT, slowT;
@@ -125,6 +125,9 @@ public class PowerUp : MonoBehaviour
         p.type = type;
         p.scrollSpeed = scrollSpeed;
         p.sr = go.GetComponent<SpriteRenderer>();
+        // Giro de moneda (frames de items/coin_spin) manteniendo el tinte por tipo.
+        var spin = ArtCache.Sprites("items/coin_spin");
+        if (spin != null && spin.Length > 1) SpriteAnim.Play(go, spin, 10f, true);
         Vfx.Pop(go.transform);
         return p;
     }

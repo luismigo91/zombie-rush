@@ -70,4 +70,4 @@
 - [x] 8.2 Decidir sobre `PixelArt.cs`: eliminar si todos los sprites tienen reemplazo, o conservar como fallback para bala/muzzle sin asset; documentar la decisión
 - [ ] 8.3 Compilar APK final y validar look completo en Pixel (neón, parallax, animaciones, UI)
 - [x] 8.4 Actualizar `CLAUDE.md` para reflejar el nuevo stack (URP, LFS, `Resources/Art/`) y archivar el cambio `art-pass`
-- [ ] 8.5 Commit final "art-pass: cierre y limpieza"
+- [x] 8.5 Commit final "art-pass: cierre y limpieza"
