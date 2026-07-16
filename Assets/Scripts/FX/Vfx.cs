@@ -72,7 +72,8 @@ public static class Vfx
         }
 
         VfxRunner.Inst.StartCoroutine(MuzzleRoutine(go));
-        CameraShake.Shake(0.04f, 0.05f); // micro kick
+        // Sin shake aquí: se dispara continuamente y el temblor perpetuo de cámara
+        // mareaba (feedback de playtest). El shake queda para eventos grandes.
     }
 
     static IEnumerator MuzzleRoutine(GameObject go)
@@ -114,8 +115,9 @@ public static class Vfx
         // Núcleo brillante e instantáneo reutilizando el burst existente.
         HitEffect.Burst(pos, tint, 6, 4.5f, 0.16f, 0.22f);
 
-        // Salpicaduras propias con gravedad (caen) y giro.
-        int count = Random.Range(14, 19);
+        // Salpicaduras propias con gravedad (caen) y giro. Contenidas: con las
+        // hordas de supervivencia mueren varios por segundo y saturaba la pantalla.
+        int count = Random.Range(8, 12);
         for (int i = 0; i < count; i++)
         {
             float size = Random.Range(0.07f, 0.18f);

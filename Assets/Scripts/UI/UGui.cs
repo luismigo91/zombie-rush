@@ -113,6 +113,29 @@ public static class UGui
         return rt;
     }
 
+    /// <summary>
+    /// Contenedor a pantalla completa cuyo borde SUPERIOR respeta el safe area del
+    /// dispositivo (notch/cámara perforada/barra de estado): todo lo anclado arriba
+    /// debe colgar de aquí para no quedar tapado por el hardware. En pantallas sin
+    /// recorte el inset es 0 y no cambia nada.
+    /// </summary>
+    public static RectTransform SafeTopRect(Transform root)
+    {
+        var rt = Rect(root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        rt.gameObject.name = "SafeTop";
+
+        float insetPx = Screen.height - Screen.safeArea.yMax; // píxeles físicos tapados arriba
+        if (insetPx > 0f)
+        {
+            // Conversión píxeles → unidades del canvas (CanvasScaler escala por ancho).
+            var canvasRt = root.GetComponentInParent<Canvas>()?.transform as RectTransform;
+            float scale = canvasRt != null && Screen.height > 0
+                ? canvasRt.rect.height / Screen.height : 1f;
+            rt.offsetMax = new Vector2(0f, -insetPx * scale);
+        }
+        return rt;
+    }
+
     /// <summary>Añade una Image tintada (sprite redondeado por defecto) a un RectTransform.</summary>
     public static Image AddImage(RectTransform rt, Color color, Sprite sprite = null, bool sliced = true)
     {

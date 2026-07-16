@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>Mejora permanente del punto de partida que vende la meta-tienda.</summary>
-public enum StartStat { Units, Weapon }
+public enum StartStat { Units, Weapon, Damage }
 
 /// <summary>
 /// Punto de partida permanente (Zombie Rush): con qué empieza CADA nivel el
@@ -33,15 +33,36 @@ public static class StartingPoint
 
     static string Key(StartStat s) => "sp_" + s;
 
-    public static int MaxLevel(StartStat s) => s == StartStat.Units ? 8 : Weapons.MaxTier;
+    public static int MaxLevel(StartStat s) => s switch
+    {
+        StartStat.Units => 5,  // 4→14 iniciales: con el cap de escuadrón en 30, la
+                               // run debe seguir creciendo con gates/jaulas
+        StartStat.Weapon => Weapons.MaxTier,
+        _ => 40, // Damage: línea LARGA (sink de monedas duradero; +5 % por nivel)
+    };
+
     public static int Level(StartStat s) => Mathf.Clamp(PlayerPrefs.GetInt(Key(s), 0), 0, MaxLevel(s));
 
-    public static int StartUnits => 6 + 3 * Level(StartStat.Units);
+    public static int StartUnits => 4 + 2 * Level(StartStat.Units);
     public static int BaseWeaponTier => Level(StartStat.Weapon);
 
-    public static string Name(StartStat s) => s == StartStat.Units ? "Soldados iniciales" : "Arma base";
-    public static string ValueText(StartStat s)
-        => s == StartStat.Units ? $"{StartUnits} soldados" : Weapons.Name(BaseWeaponTier);
+    /// <summary>Multiplicador de daño permanente comprado en la tienda (+5 % por nivel:
+    /// con el cap de 30 soldados, las MEJORAS son el eje de poder — rediseño de playtest).</summary>
+    public static float DamageMult => 1f + 0.05f * Level(StartStat.Damage);
+
+    public static string Name(StartStat s) => s switch
+    {
+        StartStat.Units => "Soldados iniciales",
+        StartStat.Weapon => "Arma base",
+        _ => "Potencia de fuego",
+    };
+
+    public static string ValueText(StartStat s) => s switch
+    {
+        StartStat.Units => $"{StartUnits} soldados",
+        StartStat.Weapon => Weapons.Name(BaseWeaponTier),
+        _ => $"+{Level(StartStat.Damage) * 5}% daño",
+    };
 
     public static bool IsMaxed(StartStat s) => Level(s) >= MaxLevel(s);
 
@@ -49,8 +70,12 @@ public static class StartingPoint
     {
         if (IsMaxed(s)) return -1;
         int lvl = Level(s);
-        int baseCost = s == StartStat.Units ? 25 : 120;
-        float growth = s == StartStat.Units ? 1.5f : 2.0f;
+        (int baseCost, float growth) = s switch
+        {
+            StartStat.Units => (25, 1.5f),
+            StartStat.Weapon => (120, 2.0f),
+            _ => (40, 1.3f), // Damage: exponencial suave y sin final cercano
+        };
         return Mathf.RoundToInt(baseCost * Mathf.Pow(growth, lvl));
     }
 
@@ -64,13 +89,18 @@ public static class StartingPoint
         return true;
     }
 
-    /// <summary>Borra todo el progreso (banco, mejoras y nivel de campaña). Para pruebas.</summary>
+    /// <summary>Borra todo el progreso (banco, mejoras, perks, récords y campaña). Para pruebas.</summary>
     public static void ResetAll()
     {
         PlayerPrefs.DeleteKey("coins");
         PlayerPrefs.DeleteKey(Key(StartStat.Units));
         PlayerPrefs.DeleteKey(Key(StartStat.Weapon));
+        PlayerPrefs.DeleteKey(Key(StartStat.Damage));
         PlayerPrefs.DeleteKey("level");
         PlayerPrefs.Save();
+        Perks.ResetAll();
+        RunConfig.ResetRecords();
+        Loadout.ResetAll();
+        Campaign.ResetBest();
     }
 }

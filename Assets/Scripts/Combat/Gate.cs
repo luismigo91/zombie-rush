@@ -1,7 +1,9 @@
 using UnityEngine;
 
-/// <summary>Tipo de efecto de un gate al cruzarlo.</summary>
-public enum GateEffect { Add, Mult, Trap, Weapon }
+/// <summary>Tipo de efecto de un gate al cruzarlo. RunDamage/RunFireRate son
+/// MEJORAS DE RUN (+% durante la partida): con el cap de escuadrón en 30, el
+/// crecimiento por recuento se agota pronto y los gates de mejora toman el relevo.</summary>
+public enum GateEffect { Add, Mult, Trap, Weapon, RunDamage, RunFireRate }
 
 /// <summary>
 /// Gate del recorrido: una barra que baja con el scroll y, al cruzar la línea del
@@ -65,10 +67,12 @@ public class Gate : MonoBehaviour
         var tm = lgo.AddComponent<TextMesh>();
         tm.text = effect switch
         {
-            GateEffect.Add    => "+" + Mathf.RoundToInt(value),
-            GateEffect.Mult   => "×" + value.ToString("0.#"),
-            GateEffect.Trap   => "−" + Mathf.RoundToInt(value),
-            _                 => "ARMA+",
+            GateEffect.Add         => "+" + Mathf.RoundToInt(value),
+            GateEffect.Mult        => "×" + value.ToString("0.#"),
+            GateEffect.Trap        => "−" + Mathf.RoundToInt(value),
+            GateEffect.RunDamage   => "DAÑO+",
+            GateEffect.RunFireRate => "RITMO+",
+            _                      => "ARMA+",
         };
         tm.font = font;
         tm.fontSize = 60;
@@ -80,9 +84,11 @@ public class Gate : MonoBehaviour
         tm.alignment = TextAlignment.Center;
         tm.color = effect switch
         {
-            GateEffect.Trap   => new Color(1f, 0.92f, 0.88f), // claro sobre marco rojo
-            GateEffect.Weapon => new Color(1f, 0.82f, 0.23f), // ámbar (#FFD23A)
-            _                 => new Color(0.96f, 0.95f, 0.91f), // hueso (#F4F1E8)
+            GateEffect.Trap        => new Color(1f, 0.92f, 0.88f), // claro sobre marco rojo
+            GateEffect.Weapon      => new Color(1f, 0.82f, 0.23f), // ámbar (#FFD23A)
+            GateEffect.RunDamage   => new Color(1f, 0.55f, 0.30f), // naranja fuego
+            GateEffect.RunFireRate => new Color(0.24f, 0.84f, 0.96f), // cian
+            _                      => new Color(0.96f, 0.95f, 0.91f), // hueso (#F4F1E8)
         };
 
         var mr = lgo.GetComponent<MeshRenderer>();
@@ -95,10 +101,12 @@ public class Gate : MonoBehaviour
 
     static Color ColorFor(GateEffect e) => e switch
     {
-        GateEffect.Add    => new Color(0.30f, 0.85f, 0.40f, 0.55f), // verde
-        GateEffect.Mult   => new Color(0.35f, 0.65f, 1f, 0.60f),    // azul
-        GateEffect.Weapon => new Color(1f, 0.75f, 0.20f, 0.60f),    // ámbar
-        _                 => new Color(0.85f, 0.25f, 0.25f, 0.55f), // rojo (trampa)
+        GateEffect.Add         => new Color(0.30f, 0.85f, 0.40f, 0.55f), // verde
+        GateEffect.Mult        => new Color(0.35f, 0.65f, 1f, 0.60f),    // azul
+        GateEffect.Weapon      => new Color(1f, 0.75f, 0.20f, 0.60f),    // ámbar
+        GateEffect.RunDamage   => new Color(1f, 0.45f, 0.20f, 0.60f),    // naranja
+        GateEffect.RunFireRate => new Color(0.20f, 0.75f, 0.90f, 0.60f), // cian
+        _                      => new Color(0.85f, 0.25f, 0.25f, 0.55f), // rojo (trampa)
     };
 
     void Update()
@@ -135,21 +143,35 @@ public class Gate : MonoBehaviour
         switch (effect)
         {
             case GateEffect.Add:
-                squad.Add(Mathf.RoundToInt(value));
-                Flash("+" + Mathf.RoundToInt(value), new Color(0.5f, 1f, 0.6f));
+                GrowOrCoins(squad, gm, Mathf.RoundToInt(value), "+" + Mathf.RoundToInt(value));
                 break;
             case GateEffect.Mult:
-                int extra = Mathf.RoundToInt(squad.Count * (value - 1f));
-                squad.Add(Mathf.Max(0, extra));
-                Flash("×" + value.ToString("0.#"), new Color(0.6f, 0.85f, 1f));
+                int extra = Mathf.Max(0, Mathf.RoundToInt(squad.Count * (value - 1f)));
+                GrowOrCoins(squad, gm, extra, "×" + value.ToString("0.#"));
                 break;
             case GateEffect.Trap:
                 squad.RemoveFront(Mathf.RoundToInt(value));
                 Flash("−" + Mathf.RoundToInt(value), new Color(1f, 0.5f, 0.5f));
                 break;
             case GateEffect.Weapon:
-                gm.RaiseWeaponTier();
-                Flash("ARMA+", new Color(1f, 0.85f, 0.4f));
+                // Con el arma ya al tope, el gate no se desperdicia: da soldados.
+                if (gm.WeaponTier >= Weapons.MaxTier)
+                {
+                    GrowOrCoins(squad, gm, 6, "+6");
+                }
+                else
+                {
+                    gm.RaiseWeaponTier();
+                    Flash("ARMA+", new Color(1f, 0.85f, 0.4f));
+                }
+                break;
+            case GateEffect.RunDamage:
+                gm.AddRunDamage(value);
+                Flash($"+{Mathf.RoundToInt(value * 100)}% DAÑO", new Color(1f, 0.55f, 0.30f));
+                break;
+            case GateEffect.RunFireRate:
+                gm.AddRunFireRate(value);
+                Flash($"+{Mathf.RoundToInt(value * 100)}% CADENCIA", new Color(0.24f, 0.84f, 0.96f));
                 break;
         }
 
@@ -164,6 +186,27 @@ public class Gate : MonoBehaviour
         else
         {
             Haptics.Heavy(); // la trampa pega fuerte
+        }
+    }
+
+    /// <summary>
+    /// Crecimiento con conversión: lo que no cabe en el escuadrón (cap 30) se
+    /// convierte en MONEDAS (×2) — ir lleno no "mata" los gates de unidades.
+    /// </summary>
+    void GrowOrCoins(Squad squad, GameManager gm, int amount, string label)
+    {
+        int accepted = squad.Add(amount);
+        int excess = amount - accepted;
+        if (excess > 0)
+        {
+            int coins = excess * 2;
+            gm.AddCoins(coins);
+            Flash(accepted > 0 ? $"{label} · +{coins} monedas" : $"+{coins} monedas",
+                new Color(1f, 0.82f, 0.23f));
+        }
+        else
+        {
+            Flash(label, new Color(0.5f, 1f, 0.6f));
         }
     }
 

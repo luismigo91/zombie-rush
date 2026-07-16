@@ -19,7 +19,10 @@ using TMPro;
 public class MenuUI : MonoBehaviour
 {
     TextMeshProUGUI coinsLabel, levelLabel;
-    ShopRow unitsRow, weaponRow;
+    TextMeshProUGUI survivalLabel, dailyLabel;
+    TextMeshProUGUI abilityLabel, skinLabel, heroLabel;
+    Button heroBtn;
+    ShopRow unitsRow, weaponRow, damageRow;
 
     struct ShopRow
     {
@@ -43,9 +46,44 @@ public class MenuUI : MonoBehaviour
     void Refresh()
     {
         if (coinsLabel != null) coinsLabel.text = Economy.Coins.ToString();
-        if (levelLabel != null) levelLabel.text = $"Nivel {Campaign.Current}/100";
+        // Rogue-lite: cada run empieza en el nivel 1; el chip muestra el RÉCORD.
+        if (levelLabel != null)
+            levelLabel.text = Campaign.Best > 0 ? $"Récord: Nv {Campaign.Best}" : "Nivel 1";
+        if (survivalLabel != null)
+            survivalLabel.text = RunConfig.SurvivalBest > 0
+                ? $"SUPERVIVENCIA\nRécord: ola {RunConfig.SurvivalBest}"
+                : "SUPERVIVENCIA\nSin fin";
+        if (dailyLabel != null)
+            dailyLabel.text = RunConfig.DailyBest > 0
+                ? $"DESAFÍO DIARIO\n{RunConfig.DailyModName} · ola {RunConfig.DailyBest}"
+                : $"DESAFÍO DIARIO\n{RunConfig.DailyModName}";
         UpdateShopRow(unitsRow, StartStat.Units);
         UpdateShopRow(weaponRow, StartStat.Weapon);
+        UpdateShopRow(damageRow, StartStat.Damage);
+        UpdateArsenal();
+    }
+
+    void UpdateArsenal()
+    {
+        if (abilityLabel != null)
+            abilityLabel.text = $"HABILIDAD\n{Loadout.AbilityName(Loadout.Ability)}";
+
+        if (skinLabel != null)
+        {
+            int next = Loadout.NextSkinIndex;
+            var s = Loadout.Skins[next];
+            string nextTxt = Loadout.SkinOwned(next) ? $"→ {s.name}" : $"→ {s.name} · {s.cost}";
+            skinLabel.text = $"SKIN: {Loadout.Skins[Loadout.SkinIndex].name}\n{nextTxt}";
+        }
+
+        if (heroLabel != null)
+        {
+            heroLabel.text = Loadout.SniperOwned
+                ? "HÉROE ✓\nFrancotirador"
+                : $"HÉROE\nFrancotirador · {Loadout.SniperCost}";
+            if (heroBtn != null)
+                heroBtn.interactable = !Loadout.SniperOwned && Economy.Coins >= Loadout.SniperCost;
+        }
     }
 
     void Build(Transform root)
@@ -74,31 +112,44 @@ public class MenuUI : MonoBehaviour
         LayoutChip(chips, 0, UGui.Gold, "icon_coin", out coinsLabel);
         LayoutChip(chips, 1, UGui.CyanNeon, "icon_star", out levelLabel);
 
-        // --- Botón JUGAR: protagonista, centrado en pantalla (~48% desde arriba) ---
-        var play = UGui.Rect(root, new Vector2(0.5f, 0.52f), new Vector2(0.5f, 0.52f),
+        // --- Botón JUGAR: protagonista (~58.5% del alto) ---
+        var play = UGui.Rect(root, new Vector2(0.5f, 0.585f), new Vector2(0.5f, 0.585f),
             Vector2.zero, Vector2.zero);
-        play.sizeDelta = new Vector2(480f, 130f);
+        play.sizeDelta = new Vector2(480f, 118f);
         var playBtn = UGui.Button(play, "JUGAR", 56, UGui.CyanNeon, UGui.Bone);
         playBtn.onClick.AddListener(() =>
         {
+            RunConfig.Mode = GameMode.Campaign;
             Haptics.Medium();
             SceneFade.Load("Game");
         });
 
-        // --- Cabecera de tienda (~40% del alto) ---
-        var shopHeader = UGui.Rect(root, new Vector2(0f, 0.40f), new Vector2(1f, 0.40f),
-            new Vector2(40f, -24f), new Vector2(-40f, 24f));
-        UGui.Text(shopHeader, "PUNTO DE PARTIDA", 38, UGui.CyanNeon,
+        // --- Modos sin fin: supervivencia + desafío diario (~49.5% del alto) ---
+        var modes = UGui.Rect(root, new Vector2(0.5f, 0.495f), new Vector2(0.5f, 0.495f),
+            Vector2.zero, Vector2.zero);
+        modes.sizeDelta = new Vector2(640f, 88f);
+        LayoutModeButton(modes, 0, UGui.Magenta, GameMode.Survival, out survivalLabel);
+        LayoutModeButton(modes, 1, UGui.Gold, GameMode.Daily, out dailyLabel);
+
+        // --- Arsenal: habilidad equipada / skin / héroe (~42.5% del alto) ---
+        BuildArsenal(root, 0.425f);
+
+        // --- Cabecera de tienda (~37.5% del alto) ---
+        var shopHeader = UGui.Rect(root, new Vector2(0f, 0.375f), new Vector2(1f, 0.375f),
+            new Vector2(40f, -22f), new Vector2(-40f, 22f));
+        UGui.Text(shopHeader, "PUNTO DE PARTIDA", 34, UGui.CyanNeon,
             TextAlignmentOptions.Center, bold: true);
 
-        // --- Filas de tienda (centros al 31.5% y 21% del alto) ---
+        // --- Filas de tienda (centros al 31.5%, 22.5% y 13.5% del alto) ---
         unitsRow = BuildShopRow(root, 0.315f, StartStat.Units, UGui.Lime, "icon_unit");
         // El PNG del arma se tinta hueso (GunGray sería invisible sobre el panel oscuro).
-        weaponRow = BuildShopRow(root, 0.21f, StartStat.Weapon, UGui.Bone, "icon_weapon");
+        weaponRow = BuildShopRow(root, 0.225f, StartStat.Weapon, UGui.Bone, "icon_weapon");
+        // Línea LARGA de daño (+3 %/nivel): sink de monedas cuando el resto está al tope.
+        damageRow = BuildShopRow(root, 0.135f, StartStat.Damage, UGui.Gold, "icon_weapon");
 
-        // --- Fila inferior: música / ajustes (centro al 11.5% del alto) ---
-        var bottom = UGui.Rect(root, new Vector2(0f, 0.115f), new Vector2(1f, 0.115f),
-            new Vector2(40f, -40f), new Vector2(-40f, 40f));
+        // --- Fila inferior: música / ajustes (centro al 6% del alto) ---
+        var bottom = UGui.Rect(root, new Vector2(0f, 0.06f), new Vector2(1f, 0.06f),
+            new Vector2(40f, -34f), new Vector2(-40f, 34f));
         LayoutBottomButton(bottom, 0, "Música: ON", UGui.CyanNeon, out var musicBtn, out var musicLabel);
         LayoutBottomButton(bottom, 1, "Ajustes", UGui.CyanNeon, out var settingsBtn, out _);
         musicBtn.onClick.AddListener(() =>
@@ -108,13 +159,73 @@ public class MenuUI : MonoBehaviour
         });
         settingsBtn.onClick.AddListener(() => PauseMenu.Show());
 
-        // --- Reinicio de progreso (centro al 5% del alto) ---
-        var reset = UGui.Rect(root, new Vector2(0.5f, 0.05f), new Vector2(0.5f, 0.05f),
-            new Vector2(-180f, -30f), new Vector2(180f, 30f));
-        var resetBtn = UGui.Button(reset, "Reiniciar progreso", 30, new Color(0.4f, 0.12f, 0.12f, 1f), UGui.Bone);
-        resetBtn.onClick.AddListener(() => StartingPoint.ResetAll());
+        // --- Reinicio de progreso (centro al 2% del alto) ---
+        var reset = UGui.Rect(root, new Vector2(0.5f, 0.02f), new Vector2(0.5f, 0.02f),
+            new Vector2(-180f, -20f), new Vector2(180f, 20f));
+        var resetBtn = UGui.Button(reset, "Reiniciar progreso", 24, new Color(0.4f, 0.12f, 0.12f, 1f), UGui.Bone);
+        resetBtn.onClick.AddListener(() => { StartingPoint.ResetAll(); Refresh(); });
 
         Refresh();
+    }
+
+    /// <summary>Fila de arsenal: tres botones compactos (habilidad cíclica, skin, héroe).</summary>
+    void BuildArsenal(Transform root, float yAnchor)
+    {
+        var row = UGui.Rect(root, new Vector2(0.5f, yAnchor), new Vector2(0.5f, yAnchor),
+            Vector2.zero, Vector2.zero);
+        row.sizeDelta = new Vector2(660f, 76f);
+
+        var abilityBtn = ArsenalButton(row, 0, UGui.CyanNeon, out abilityLabel);
+        abilityBtn.onClick.AddListener(() =>
+        {
+            Loadout.CycleAbility();
+            Sfx.Click();
+            Haptics.Light();
+            Refresh();
+        });
+
+        var skinBtn = ArsenalButton(row, 1, UGui.Lime, out skinLabel);
+        skinBtn.onClick.AddListener(() =>
+        {
+            if (Loadout.CycleSkin()) { Sfx.Click(); Haptics.Light(); }
+            Refresh();
+        });
+
+        heroBtn = ArsenalButton(row, 2, UGui.Gold, out heroLabel);
+        heroBtn.onClick.AddListener(() =>
+        {
+            if (Loadout.TryBuySniper()) { Sfx.LevelUp(); Haptics.Medium(); }
+            Refresh();
+        });
+    }
+
+    Button ArsenalButton(RectTransform parent, int slot, Color bg, out TextMeshProUGUI label)
+    {
+        var r = UGui.Rect(parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        float w = 210f, gap = 15f;
+        r.anchoredPosition = new Vector2((slot - 1) * (w + gap), 0f);
+        r.sizeDelta = new Vector2(w, 76f);
+        var btn = UGui.Button(r, "", 20, bg, UGui.Bone);
+        label = r.GetComponentInChildren<TextMeshProUGUI>();
+        return btn;
+    }
+
+    /// <summary>Botón de modo sin fin (dos por fila) con récord en la segunda línea.</summary>
+    void LayoutModeButton(RectTransform parent, int slot, Color bg, GameMode mode,
+        out TextMeshProUGUI label)
+    {
+        var r = UGui.Rect(parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        float w = 310f, gap = 20f;
+        r.anchoredPosition = new Vector2((slot - 0.5f) * (w + gap), 0f);
+        r.sizeDelta = new Vector2(w, 92f);
+        var btn = UGui.Button(r, "", 24, bg, UGui.Bone); // 24: la 2ª línea (mod del día) es larga
+        label = r.GetComponentInChildren<TextMeshProUGUI>();
+        btn.onClick.AddListener(() =>
+        {
+            RunConfig.Mode = mode;
+            Haptics.Medium();
+            SceneFade.Load("Game");
+        });
     }
 
     void LayoutChip(RectTransform parent, int slot, Color color, string iconName, out TextMeshProUGUI label)
@@ -139,7 +250,7 @@ public class MenuUI : MonoBehaviour
         var row = new ShopRow();
         var r = UGui.Rect(root, new Vector2(0.5f, yAnchor), new Vector2(0.5f, yAnchor),
             Vector2.zero, Vector2.zero);
-        r.sizeDelta = new Vector2(640f, 120f);
+        r.sizeDelta = new Vector2(640f, 105f); // compactas: la fila de arsenal ocupa su hueco
         UGui.AddImage(r, UGui.PanelColor, UGui.Rounded);
         row.root = r.gameObject;
 

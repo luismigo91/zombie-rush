@@ -22,9 +22,14 @@ public class Squad : MonoBehaviour
     public int startCount = 8;          // punto de partida (luego lo fijará la meta-tienda)
 
     [Header("Formación (disco √N)")]
-    public float baseRadius = 0.16f;    // factor del radio: r = baseRadius * √N (menor = más concentrados)
-    public float maxRadius = 1.1f;      // tope de ancho: al superarlo, el exceso aumenta la densidad
-    public float unitSize = 0.32f;      // tamaño de cada soldado (se solapan un poco = multitud compacta)
+    // Blob COMPACTO: con maxRadius 1.1 el escuadrón ocupaba ~40 % del ancho de la
+    // pantalla (±2.8u) y su centro solo podía moverse ±1.7u → esquivar proyectiles,
+    // obstáculos o embestidas era casi imposible y "moverse no servía de mucho"
+    // (playtest). Con 0.8 el rango útil de movimiento crece un 20 % y la hitbox
+    // de contacto (Radius) baja: la esquiva vuelve a ser una herramienta real.
+    public float baseRadius = 0.13f;    // factor del radio: r = baseRadius * √N (menor = más concentrados)
+    public float maxRadius = 0.8f;      // tope de ancho: al superarlo, el exceso aumenta la densidad
+    public float unitSize = 0.27f;      // tamaño de cada soldado (se solapan = multitud compacta)
     public float follow = 16f;          // suavizado con el que cada unidad va a su hueco (mayor = más cohesión)
 
     [Header("Movimiento")]
@@ -32,6 +37,10 @@ public class Squad : MonoBehaviour
 
     [Header("Crecimiento")]
     public float growInterval = 0.035f; // tiempo entre apariciones (efecto "de uno en uno")
+    // Tope BAJO a propósito (rediseño de playtest): el recuento es la VIDA y el
+    // escudo; el poder viene de las MEJORAS (perks, tienda, armas). Con 30, cada
+    // soldado importa y los gates llenan el cupo rápido sin trivializar el DPS.
+    public int maxCount = 30;
 
     public int Count => units.Count;
     public float Radius { get; private set; }
@@ -69,8 +78,15 @@ public class Squad : MonoBehaviour
         if (GameManager.Instance != null)
             GameManager.Instance.Squad = this;
 
-        Add(StartingPoint.StartUnits); // punto de partida de la meta-tienda
+        // Punto de partida de la meta-tienda + refuerzos del perk de campaña.
+        Add(StartingPoint.StartUnits + Perks.BonusStartUnits);
         Reflow(snap: true);
+
+        // Perk de blindaje: cada nivel arranca con unos segundos de escudo
+        // (PowerUpManager ya existe: GameBootstrap lo crea antes que el escuadrón).
+        float shield = Perks.StartShieldSeconds;
+        if (shield > 0f && PowerUpManager.Instance != null)
+            PowerUpManager.Instance.GrantShield(shield);
     }
 
     void Update()
@@ -114,15 +130,27 @@ public class Squad : MonoBehaviour
         {
             Touch t = Input.GetTouch(0);
             screenPos = t.position;
+            // No INICIAR un drag sobre un botón (pausa/granada): el tap movía el
+            // escuadrón. Un drag ya empezado sí puede cruzar por encima de la UI.
+            if (!dragging && IsPointerOverUi(t.fingerId)) return false;
             return t.phase != TouchPhase.Ended && t.phase != TouchPhase.Canceled;
         }
         if (Input.GetMouseButton(0))
         {
             screenPos = Input.mousePosition;
+            if (!dragging && IsPointerOverUi(-1)) return false;
             return true;
         }
         screenPos = Vector2.zero;
         return false;
+    }
+
+    /// <summary>¿El puntero está sobre UI con raycast (botones)? fingerId −1 = ratón.</summary>
+    static bool IsPointerOverUi(int fingerId)
+    {
+        var es = UnityEngine.EventSystems.EventSystem.current;
+        if (es == null) return false;
+        return fingerId >= 0 ? es.IsPointerOverGameObject(fingerId) : es.IsPointerOverGameObject();
     }
 
     // ---------------------------------------------------------------- formación
@@ -160,10 +188,17 @@ public class Squad : MonoBehaviour
     /// Encola n soldados (gates/jaulas). NO aparecen de golpe: se sueltan de uno en
     /// uno en ProcessGrowth para que el recuento "suba" en ráfaga y se sienta una
     /// multitud que crece, en vez de un bloque que se planta de una vez.
+    /// Devuelve cuántos ACEPTÓ (el llamante convierte el excedente en monedas).
     /// </summary>
-    public void Add(int n)
+    public int Add(int n)
     {
-        if (n > 0) pending += n;
+        if (n <= 0) return 0;
+
+        // Tope de escuadrón: lo que no cabe lo gestiona el llamante (→ monedas).
+        int room = maxCount - units.Count - pending;
+        int accepted = Mathf.Clamp(n, 0, Mathf.Max(0, room));
+        if (accepted > 0) pending += accepted;
+        return accepted;
     }
 
     /// <summary>Suelta los soldados encolados poco a poco (de uno en uno). Si la cola es
@@ -217,6 +252,12 @@ public class Squad : MonoBehaviour
             go.transform.localPosition = new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f), 0f);
             go.transform.localRotation = UnitFacing;
         }
+
+        // Skin del escuadrón: tinte de Loadout (siempre, también al reusar del pool:
+        // la unidad reciclada podría traer el tinte de otra skin).
+        var unitSr = go.GetComponent<SpriteRenderer>();
+        if (unitSr != null) unitSr.color = Loadout.SkinTint;
+
         units.Add(go.transform);
 
         // Animación de marcha (el offset de fase aleatorio desincroniza la formación).

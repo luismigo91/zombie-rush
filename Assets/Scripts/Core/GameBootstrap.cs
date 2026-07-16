@@ -72,6 +72,8 @@ public class GameBootstrap : MonoBehaviour
 
         var squad = go.AddComponent<Squad>();
         go.AddComponent<SquadShooter>();
+        go.AddComponent<ActiveAbility>(); // habilidad equipada con cooldown (botón del HUD)
+        if (Loadout.SniperOwned) go.AddComponent<SniperHero>(); // héroe comprado en el menú
         return squad;
     }
 }

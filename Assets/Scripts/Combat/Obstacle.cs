@@ -50,7 +50,6 @@ public class Obstacle : MonoBehaviour
                 FloatingTextManager.Spawn(transform.position, "−" + damage, new Color(1f, 0.5f, 0.5f));
                 HitEffect.Burst(transform.position, new Color(0.75f, 0.7f, 0.65f), 10, 6f, 0.16f, 0.35f);
                 CameraShake.Shake(0.15f, 0.18f);
-                Vfx.HitStop(0.04f);
                 Sfx.Hurt();
                 Haptics.Heavy();
                 Destroy(gameObject);

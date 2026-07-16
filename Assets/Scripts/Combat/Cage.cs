@@ -48,8 +48,16 @@ public class Cage : MonoBehaviour, IShootable
         var gm = GameManager.Instance;
         if (gm != null && gm.Squad != null)
         {
-            gm.Squad.Add(survivors);
-            FloatingTextManager.Spawn(transform.position, "+" + survivors, new Color(0.6f, 1f, 0.6f));
+            // Lo que no cabe en el escuadrón (cap 30) se convierte en monedas ×2,
+            // como en los gates: rescatar nunca se desperdicia.
+            int accepted = gm.Squad.Add(survivors);
+            int excessCoins = (survivors - accepted) * 2;
+            if (excessCoins > 0) gm.AddCoins(excessCoins);
+            string label = accepted > 0
+                ? (excessCoins > 0 ? $"+{accepted} · +{excessCoins} monedas" : "+" + accepted)
+                : $"+{excessCoins} monedas";
+            FloatingTextManager.Spawn(transform.position, label,
+                excessCoins > 0 ? new Color(1f, 0.82f, 0.23f) : new Color(0.6f, 1f, 0.6f));
             Sfx.Gate();                              // ding ascendente de rescate
             Vfx.CoinPickup(transform.position);      // destello de recompensa
             Haptics.Medium();

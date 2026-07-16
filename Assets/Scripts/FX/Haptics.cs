@@ -28,10 +28,17 @@ public static class Haptics
     /// <summary>
     /// Disparo común: comprueba el ajuste del usuario y delega a la plataforma.
     /// </summary>
+    static float _lastVibeTime = -1f; // limitador global anti-ráfaga
+
     static void Vibrate(long milliseconds, int amplitude)
     {
         // Respeta el ajuste del usuario (no vibrar si lo desactivó).
         if (!SettingsStore.VibrationOn) return;
+
+        // Limitador global: aunque varios eventos coincidan (gate + power-up +
+        // choque), nunca más de un pulso cada 90 ms → sin zumbido acumulado.
+        if (Time.unscaledTime - _lastVibeTime < 0.09f) return;
+        _lastVibeTime = Time.unscaledTime;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         VibrateAndroid(milliseconds, amplitude);

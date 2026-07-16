@@ -31,23 +31,54 @@ public class PowerUpManager : MonoBehaviour
 
     [Header("Cadena de eventos")]
     public float dropChance = 0.045f; // probabilidad por zombie: escaso a propósito (supervivencia)
+    public int pityKills = 40;        // drop GARANTIZADO tras tantas muertes sin premio (anti-sequía RNG)
+
+    int killsSinceDrop;
 
     // Tiempo restante de cada efecto temporal (>0 → activo).
-    float shieldT, rapidT, slowT;
+    float shieldT, rapidT, slowT, freezeT;
 
     public bool ShieldActive => shieldT > 0f;
     public bool RapidActive => rapidT > 0f;
     public bool SlowActive => slowT > 0f;
+    public bool FreezeActive => freezeT > 0f;
     /// <summary>Fracción de tiempo restante de cada efecto (0..1) para el HUD.</summary>
     public float ShieldFrac => shieldDuration > 0f ? Mathf.Clamp01(shieldT / shieldDuration) : 0f;
     public float RapidFrac => rapidDuration > 0f ? Mathf.Clamp01(rapidT / rapidDuration) : 0f;
     public float SlowFrac => slowDuration > 0f ? Mathf.Clamp01(slowT / slowDuration) : 0f;
-    /// <summary>Factor de velocidad aplicado a la horda (0.5 si slow activo, 1 si no).</summary>
-    public float HordeSpeedFactor => SlowActive ? 0.45f : 1f;
+    public float FreezeFrac => Mathf.Clamp01(freezeT / 4f);
+    /// <summary>Factor de velocidad de la horda: congelación (habilidad) &gt; slow (power-up).</summary>
+    public float HordeSpeedFactor => FreezeActive ? 0.22f : (SlowActive ? 0.45f : 1f);
     /// <summary>Multiplicador de cadencia del escuadrón (2× si rapid activo).</summary>
     public float FireRateFactor => RapidActive ? 2.2f : 1f;
 
     void Awake() => Instance = this;
+
+    /// <summary>
+    /// Tirada de drop por muerte de zombie: probabilidad (modulada por el perk de
+    /// suerte) + "pity" (garantía tras una racha seca). Centralizado aquí para que
+    /// el contador de racha viva junto a la probabilidad.
+    /// </summary>
+    public bool RollDrop(bool force)
+    {
+        // Desafío diario SIN POWER-UPS: nada cae, ni siquiera del jefe (reto puro).
+        if (RunConfig.DailyModActive(DailyMod.NoPowerUps)) return false;
+
+        killsSinceDrop++;
+        float chance = dropChance * Perks.LuckMult;
+        if (force || killsSinceDrop >= pityKills || Random.value <= chance)
+        {
+            killsSinceDrop = 0;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>Concede escudo directo (perk de blindaje inicial, revive). No acorta uno activo.</summary>
+    public void GrantShield(float seconds) => shieldT = Mathf.Max(shieldT, seconds);
+
+    /// <summary>Congelación de la habilidad CONGELACIÓN (más fuerte que el slow).</summary>
+    public void GrantFreeze(float seconds) => freezeT = Mathf.Max(freezeT, seconds);
 
     void Update()
     {
@@ -55,6 +86,7 @@ public class PowerUpManager : MonoBehaviour
         if (shieldT > 0f) shieldT -= dt;
         if (rapidT > 0f) rapidT -= dt;
         if (slowT > 0f) slowT -= dt;
+        if (freezeT > 0f) freezeT -= dt;
     }
 
     /// <summary>Aplica el efecto del power-up recogido.</summary>
@@ -132,12 +164,12 @@ public class PowerUp : MonoBehaviour
         return p;
     }
 
-    /// <summary>Suelta un power-up aleatorio en pos con la probabilidad del manager.</summary>
+    /// <summary>Suelta un power-up aleatorio en pos según la tirada del manager (con pity).</summary>
     public static void MaybeDrop(Vector3 pos, float scrollSpeed, bool force = false)
     {
         var mgr = PowerUpManager.Instance;
         if (mgr == null) return;
-        if (!force && Random.value > mgr.dropChance) return;
+        if (!mgr.RollDrop(force)) return;
         PowerUpType t = (PowerUpType)Random.Range(0, 4);
         Spawn(pos, t, scrollSpeed);
     }
@@ -154,10 +186,10 @@ public class PowerUp : MonoBehaviour
                               + Vector3.up * dy * Time.deltaTime;
         transform.Rotate(0f, 0f, 90f * Time.deltaTime);
 
-        // Recogida: solape con el escuadrón.
+        // Recogida: solape con el escuadrón (el perk IMÁN amplía el alcance).
         if (gm.State == GameState.Playing && gm.Squad != null && gm.Squad.Count > 0)
         {
-            float reach = gm.Squad.Radius + 0.4f;
+            float reach = (gm.Squad.Radius + 0.4f) * Perks.MagnetMult;
             if (((Vector2)(transform.position - gm.Squad.transform.position)).sqrMagnitude <= reach * reach)
             {
                 if (PowerUpManager.Instance != null) PowerUpManager.Instance.Apply(type);

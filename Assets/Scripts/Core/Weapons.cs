@@ -17,11 +17,17 @@ public static class Weapons
         public int pierce; // enemigos extra que atraviesan las balas (mecánica perforante)
     }
 
+    // Progresión de DPS (daño×cadencia): 1.0 → 1.4 → 1.44 (+pierce) → 1.82 → 2.38 → 2.86
+    // (+pierce alto). Con 6 tiers los gates ARMA+ importan durante toda la campaña
+    // (con 3 se agotaban hacia el nivel 10 y el gate quedaba muerto).
     public static readonly Tier[] Tiers =
     {
-        new Tier { name = "Pistola",  damageMult = 1.0f, fireRateMult = 1.0f, extraStreams = 0, pierce = 0 },
-        new Tier { name = "Subfusil", damageMult = 0.7f, fireRateMult = 2.0f, extraStreams = 0, pierce = 0 },
-        new Tier { name = "Escopeta", damageMult = 1.6f, fireRateMult = 0.9f, extraStreams = 2, pierce = 2 },
+        new Tier { name = "Pistola",     damageMult = 1.0f,  fireRateMult = 1.0f, extraStreams = 0, pierce = 0 },
+        new Tier { name = "Subfusil",    damageMult = 0.7f,  fireRateMult = 2.0f, extraStreams = 0, pierce = 0 },
+        new Tier { name = "Escopeta",    damageMult = 1.6f,  fireRateMult = 0.9f, extraStreams = 2, pierce = 2 },
+        new Tier { name = "Rifle",       damageMult = 1.3f,  fireRateMult = 1.4f, extraStreams = 1, pierce = 1 },
+        new Tier { name = "Minigun",     damageMult = 0.85f, fireRateMult = 2.8f, extraStreams = 2, pierce = 1 },
+        new Tier { name = "Láser",       damageMult = 2.2f,  fireRateMult = 1.3f, extraStreams = 3, pierce = 4 },
     };
 
     public static int MaxTier => Tiers.Length - 1;

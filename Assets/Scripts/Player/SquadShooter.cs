@@ -18,9 +18,13 @@ public class SquadShooter : MonoBehaviour
     public float baseDamage = 7f;     // daño por soldado (tier 0)
     public float fireRate = 3.5f;     // ráfagas/seg por columna (tier 0)
     public float bulletSpeed = 16f;
-    public float streamSpacing = 0.42f;
+    // Ajustados al blob COMPACTO (maxRadius 0.8 en Squad): columnas más juntas y
+    // fuego cubriendo ~70 % del ancho del disco → el haz es estrecho respecto a la
+    // pantalla y APUNTAR moviéndose vuelve a ser una decisión (con el blob ancho el
+    // abanico cubría media pantalla y daba igual dónde estuvieras).
+    public float streamSpacing = 0.3f;
     public int maxStreams = 11;
-    public float fireConcentration = 0.6f; // fracción del ancho del blob donde se concentra el fuego
+    public float fireConcentration = 0.7f; // fracción del ancho del blob donde se concentra el fuego
 
     Squad squad;
     float[] timers;   // temporizador independiente por columna
@@ -52,15 +56,17 @@ public class SquadShooter : MonoBehaviour
         int streams = Mathf.Clamp(Mathf.RoundToInt(fireWidth / streamSpacing) + tier.extraStreams, 1, maxStreams);
         streams = Mathf.Min(streams, n);
 
-        float interval = 1f / Mathf.Max(0.01f, fireRate * tier.fireRateMult * rapidFactor);
+        float interval = 1f / Mathf.Max(0.01f,
+            fireRate * tier.fireRateMult * Perks.FireRateMult * gm.RunFireRateMult * rapidFactor);
         // DPS SUBLINEAL con el nº de soldados: lineal (×n) hacía que crecer
         // multiplicara la potencia ×5-12 y ninguna curva de vida podía perseguirlo
-        // (todo moría antes de llegar). effN ≈ n^0.72 calibrado para que con ~10-12
-        // soldados (inicio) rinda igual que antes; con 40 rinde ~2.4× (no 4×) y con
-        // 100 ~4.4× (no 10×). Crecer sigue importando: más ancho de fuego, más
-        // escudo y más DPS, pero la horda mantiene la presión de contacto.
-        float effN = 1.9f * Mathf.Pow(n, 0.72f);
-        float damagePerStream = baseDamage * tier.damageMult * effN / streams;
+        // (todo moría antes de llegar). n^0.75: sublineal para que la horda mantenga
+        // presión, pero menos plano que el 0.72 original — combinado con el
+        // escalado de vida por soldado, crecer apenas se notaba (playtest).
+        float effN = 1.9f * Mathf.Pow(n, 0.75f);
+        // El daño combina arma (tier), perks de la run, tienda y gates de mejora.
+        float damagePerStream = baseDamage * tier.damageMult * Perks.DamageMult
+            * StartingPoint.DamageMult * gm.RunDamageMult * effN / streams;
         float cx = transform.position.x;
         float y = squad.TopY;
 
@@ -79,7 +85,8 @@ public class SquadShooter : MonoBehaviour
                     ? 0f
                     : Mathf.Lerp(-fireWidth * 0.5f, fireWidth * 0.5f, k / (streams - 1f));
                 var boca = new Vector3(cx + fx, y, 0f);
-                Bullet.Spawn(boca, Vector2.up, bulletSpeed, damagePerStream, tier.pierce);
+                Bullet.Spawn(boca, Vector2.up, bulletSpeed, damagePerStream,
+                    tier.pierce + Perks.BonusPierce);
                 Vfx.Muzzle(boca); // fogonazo de boca en cada columna
                 firedAny = true;
             }
@@ -93,7 +100,8 @@ public class SquadShooter : MonoBehaviour
         {
             Sfx.Shoot();
             squad.PlayShootAnim(3); // retroceso/fogonazo en unas pocas unidades
-            Haptics.Light();        // micro-vibración al disparar (respeta ajustes)
+            // Sin háptica aquí: disparar es continuo y vibrar por tick convertía
+            // el móvil en un zumbido constante (feedback de playtest).
             sfxCd = 0.07f;
         }
     }

@@ -22,6 +22,7 @@ public static class Sfx
     // Clips cacheados (se generan perezosamente en Ensure()).
     static AudioClip shoot, hit, death, coin, hurt, click;
     static AudioClip gate, levelUp, win, lose, bossRoar, coinPickup;
+    static AudioClip scream, explosion;
 
     static bool ready;
 
@@ -56,6 +57,8 @@ public static class Sfx
         lose = BuildLose();
         bossRoar = BuildBossRoar();
         coinPickup = BuildCoinPickup();
+        scream = BuildScream();
+        explosion = BuildExplosion();
     }
 
     // ======================================================================
@@ -382,6 +385,51 @@ public static class Sfx
         return Arp("sfx_coinpickup", notes, 0.05f, 0.006f, Wave.Sine, 0.5f, 7f);
     }
 
+    /// <summary>Grito del screamer: chillido agudo con vibrato rápido que sube al final (inquietante).</summary>
+    static AudioClip BuildScream()
+    {
+        var buf = NewBuf(0.38f);
+        int n = buf.Length;
+        float attackN = SR * 0.006f;
+        float releaseN = SR * 0.01f;
+        float phase = 0f, phase2 = 0f;
+
+        for (int i = 0; i < n; i++)
+        {
+            float t = (float)i / n;
+            float vib = 1f + 0.05f * Mathf.Sin(2f * Mathf.PI * 13f * (i / (float)SR)); // vibrato rápido (chirrido)
+            // Baja y remonta al final (grito que "se revuelve").
+            float freq = (t < 0.7f ? Mathf.Lerp(1250f, 850f, t / 0.7f) : Mathf.Lerp(850f, 1500f, (t - 0.7f) / 0.3f)) * vib;
+            phase += 2f * Mathf.PI * freq / SR;
+            phase2 += 2f * Mathf.PI * (freq * 1.5f) / SR; // quinta chillona
+
+            float env = Mathf.Exp(-2.4f * t);
+            if (i < attackN) env *= i / attackN;
+            if (i > n - releaseN) env *= (n - i) / releaseN;
+
+            float s = Sample(Wave.Saw, phase) * 0.42f + Sample(Wave.Square, phase2) * 0.14f;
+            buf[i] += s * env;
+        }
+        RenderNoise(buf, 0.75f, 0.12f, 6f); // aire/rasgado
+        NormalizeTo(buf, 0.7f);
+        return MakeClip("sfx_scream", buf);
+    }
+
+    /// <summary>Explosión (granada/exploder): boom de ruido grave + sub descendente + transiente.</summary>
+    static AudioClip BuildExplosion()
+    {
+        var buf = NewBuf(0.55f);
+        Layer(buf, 110f, 32f, Wave.Sine, 0.5f, 4f);   // sub que cae (cuerpo del boom)
+        Layer(buf, 220f, 60f, Wave.Saw, 0.14f, 6f);   // rasgado medio
+        RenderNoise(buf, 0.10f, 0.55f, 4.5f);         // onda expansiva grave y sorda
+        // Transiente inicial: chasquido agudo muy corto.
+        var t = NewBuf(0.02f);
+        RenderNoise(t, 0.85f, 0.6f, 9f);
+        for (int i = 0; i < t.Length && i < buf.Length; i++) buf[i] += t[i];
+        NormalizeTo(buf, 0.85f);
+        return MakeClip("sfx_explosion", buf);
+    }
+
     // ======================================================================
     //  Reproducción (con gating de ajustes + jitter de pitch)
     // ======================================================================
@@ -419,4 +467,10 @@ public static class Sfx
 
     /// <summary>Variante brillante al recoger una moneda (Coin() se conserva para otros usos).</summary>
     public static void CoinPickup() { Ensure(); if (!SettingsStore.SfxOn) return; Play(coinPickup, 0.50f); }
+
+    /// <summary>Chillido del screamer al acelerar a la horda.</summary>
+    public static void Scream() { Ensure(); if (!SettingsStore.SfxOn) return; Play(scream, 0.55f); }
+
+    /// <summary>Boom de la granada del escuadrón y del exploder.</summary>
+    public static void Explosion() { Ensure(); if (!SettingsStore.SfxOn) return; Play(explosion, 0.65f); }
 }

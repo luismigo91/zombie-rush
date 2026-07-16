@@ -103,13 +103,15 @@ public class PauseMenu : MonoBehaviour
             new Vector2(-280f, -360f), new Vector2(280f, 360f));
         UGui.AddImage(card, UGui.PanelColor, UGui.Rounded);
 
-        // Título.
+        // Título pegado a la parte alta de la tarjeta (24-104 px bajo el borde).
         var titleR = UGui.Rect(card, new Vector2(0f, 1f), new Vector2(1f, 1f),
-            new Vector2(0f, -320f), new Vector2(0f, -240f));
+            new Vector2(0f, -104f), new Vector2(0f, -24f));
         UGui.Text(titleR, "PAUSA", 48, UGui.CyanNeon, TextAlignmentOptions.Center, bold: true);
 
-        // Botones.
-        float y = -180f;
+        // Botones: las Y son relativas al CENTRO de la tarjeta (alto 720 → ±360).
+        // Empiezan en positivo bajo el título; antes arrancaban en -180 y los
+        // toggles caían FUERA de la tarjeta (menú descuadrado, playtest).
+        float y = 170f;
         var resume = MakeButton(card, y, "REANUDAR", UGui.CyanNeon);
         AddButtonIcon(resume, "icon_play");
         resume.onClick.AddListener(Close);

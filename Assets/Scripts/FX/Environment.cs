@@ -63,11 +63,22 @@ public class Environment : MonoBehaviour
         { "lab",        new[] { 1.00f, 0.50f, 0.85f, 0.80f, 1.15f, 0.80f, 1.05f, 1.25f } }, // tanque, luz, cables, pantalla, cápsula, torreta, valla, puerta
     };
 
+    // --- Noche (niveles x7-x9: la recta final de cada acto, previa al jefe) ---
+    // Los sprites son unlit (Sprites/Default), así que la noche va por TINTES
+    // multiplicativos + un velo ambiente, no por la iluminación 2D.
+    static readonly Color NIGHT_SKY   = new Color(0.48f, 0.48f, 0.72f);
+    static readonly Color NIGHT_GROUND = new Color(0.56f, 0.56f, 0.76f);
+    static readonly Color NIGHT_PROP  = new Color(0.62f, 0.62f, 0.85f);
+    static readonly Color NIGHT_VEIL  = new Color(0.06f, 0.06f, 0.18f, 0.22f);
+    const int SORT_NIGHT_VEIL = 8; // sobre el gameplay (squad 2, balas 5), bajo textos
+
     // --- Estado de scroll ---
     Camera cam;
     float scrollSpeed;
     bool scrollGated;
     string theme = "suburbs";
+    bool night;
+    Transform nightVeil;
 
     // --- Cielo ---
     Transform sky;
@@ -117,6 +128,14 @@ public class Environment : MonoBehaviour
         env.scrollSpeed = Mathf.Max(0f, scrollSpeed);
         env.scrollGated = gated;
         env.theme = ResolveTheme(gated);
+        env.night = gated && IsNight(GameManager.Instance != null ? GameManager.Instance.Level : 1);
+    }
+
+    /// <summary>¿El nivel/oleada es NOCTURNO? (x7-x9 de cada acto; el jefe amanece).</summary>
+    public static bool IsNight(int level)
+    {
+        int d = level % 10;
+        return d >= 7 && d <= 9;
     }
 
     /// <summary>Tema de localización para un nivel dado (uno cada 2 actos). Público:
@@ -151,8 +170,18 @@ public class Environment : MonoBehaviour
         BuildEdges();
         BuildProps();
         BuildFog();
+        BuildNightVeil();
 
         Resize();
+    }
+
+    /// <summary>Velo azul-noche a pantalla completa por encima del gameplay (solo de noche).</summary>
+    void BuildNightVeil()
+    {
+        if (!night) return;
+        var tex = Texture2D.whiteTexture;
+        var spr = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), tex.width);
+        nightVeil = MakeQuad("NightVeil", spr, NIGHT_VEIL, SORT_NIGHT_VEIL).transform;
     }
 
     /// <summary>Cielo: degradado vertical procedural #14122A → #241A3A.</summary>
@@ -172,7 +201,7 @@ public class Environment : MonoBehaviour
         tex.Apply();
 
         var spr = Sprite.Create(tex, new Rect(0, 0, 1, H), new Vector2(0.5f, 0.5f), H);
-        sky = MakeQuad("Sky", spr, Color.white, SORT_SKY).transform;
+        sky = MakeQuad("Sky", spr, night ? NIGHT_SKY : Color.white, SORT_SKY).transform;
     }
 
     /// <summary>
@@ -200,7 +229,7 @@ public class Environment : MonoBehaviour
             mat.mainTexture = tile.texture;
             mat.SetTextureScale("_MainTex", new Vector2(1f, 2f)); // repite 2 veces por losa
 
-            var go = MakeQuad("GroundSlab" + i, tile, Color.white, SORT_GROUND);
+            var go = MakeQuad("GroundSlab" + i, tile, night ? NIGHT_GROUND : Color.white, SORT_GROUND);
             var sr = go.GetComponent<SpriteRenderer>();
             if (sr != null) sr.sharedMaterial = mat;
             groundSlabs.Add(go.transform);
@@ -222,7 +251,7 @@ public class Environment : MonoBehaviour
 
         for (int i = 0; i < 4; i++) // [izq0, izq1, der0, der1]
         {
-            var go = MakeQuad("Edge" + i, tile, Color.white, SORT_GROUND + 1);
+            var go = MakeQuad("Edge" + i, tile, night ? NIGHT_GROUND : Color.white, SORT_GROUND + 1);
             var sr = go.GetComponent<SpriteRenderer>();
             if (sr != null) sr.sharedMaterial = edgeMat;
             edgeColumns.Add(go.transform);
@@ -237,7 +266,8 @@ public class Environment : MonoBehaviour
     {
         var s = ArtCache.Sprite($"environment/skyline_{theme}");
         if (s == null) return;
-        skyline = MakeQuad("Skyline", s, new Color(1f, 1f, 1f, 0.85f), SORT_SKY + 5).transform;
+        Color c = night ? new Color(0.55f, 0.55f, 0.78f, 0.7f) : new Color(1f, 1f, 1f, 0.85f);
+        skyline = MakeQuad("Skyline", s, c, SORT_SKY + 5).transform;
     }
 
     /// <summary>Props laterales cargados desde ArtCache, en pool de parallax.</summary>
@@ -426,6 +456,7 @@ public class Environment : MonoBehaviour
         float coverH = fullH + 1.5f;
 
         if (sky != null) sky.localScale = new Vector3(coverW, coverH, 1f);
+        if (nightVeil != null) nightVeil.localScale = new Vector3(coverW, coverH, 1f);
 
         // Skyline: franja pegada al borde superior, ancho completo (aspect 4:1).
         if (skyline != null)
@@ -449,8 +480,11 @@ public class Environment : MonoBehaviour
         // repetido en vertical vía material (mundo: EDGE_W de alto por repetición).
         if (edgeColumns.Count == 4)
         {
+            // Tile del arcén al DOBLE de tamaño (mitad de repeticiones): a tamaño
+            // natural el patrón cruzaba la pantalla ~2.6 veces/seg y estroboscopiaba
+            // (contribuía al mareo del playtest).
             if (edgeMat != null)
-                edgeMat.SetTextureScale("_MainTex", new Vector2(1f, slabHeight / EDGE_W));
+                edgeMat.SetTextureScale("_MainTex", new Vector2(1f, slabHeight / (EDGE_W * 2f)));
             float ex = halfW - EDGE_W * 0.5f;
             for (int i = 0; i < 4; i++)
             {
@@ -509,7 +543,9 @@ public class Environment : MonoBehaviour
         // Dos "capas" visuales solo de tinte/orden (no de tamaño ni velocidad).
         bool near = Random.value < 0.5f;
         pr.sr.sortingOrder = near ? SORT_PROP_NEAR : SORT_PROP_FAR;
-        pr.sr.color = near ? Color.white : PROP_FAR_TINT;
+        Color propTint = near ? Color.white : PROP_FAR_TINT;
+        if (night) propTint *= NIGHT_PROP; // penumbra (las farolas destacan más)
+        pr.sr.color = propTint;
 
         if (Random.value < 0.5f)
         {
@@ -577,9 +613,9 @@ public class Environment : MonoBehaviour
         if (l2d == null) l2d = lightGo.AddComponent<Light2D>();
         l2d.lightType = Light2D.LightType.Point;
         l2d.color = Hex("E8A23A"); // ámbar tenue de farola
-        l2d.intensity = 0.8f;
+        l2d.intensity = night ? 1.3f : 0.8f;              // de noche, más presencia
         l2d.pointLightInnerRadius = 0.5f;
-        l2d.pointLightOuterRadius = 2.5f;
+        l2d.pointLightOuterRadius = night ? 3.2f : 2.5f;
         lightGo.transform.localPosition = Vector3.zero;
     }
 }

@@ -45,5 +45,11 @@ public class LevelDefinition
     public float duration;
     public float scrollSpeed;
     public float bossHealth; // 0 si no es nivel-jefe
+
+    // Stats base del zombie del nivel (las hordas las llevan por evento; el GOTEO
+    // constante de fondo del LevelRunner las toma de aquí).
+    public float baseZombieHealth;
+    public float baseZombieSpeed;
+
     public readonly List<LevelEvent> events = new List<LevelEvent>();
 }
