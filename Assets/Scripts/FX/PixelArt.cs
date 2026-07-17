@@ -66,7 +66,7 @@ public static class PixelArt
 
     // ----------------- caché -----------------
 
-    static Sprite[] _soldierMarch, _soldierShoot, _zombieShamble, _coinSpin;
+    static Sprite[] _soldierMarch, _soldierShoot, _zombieShamble, _coinSpin, _splats;
     static Sprite _bullet, _chest, _boss, _muzzle;
 
     // ----------------- API pública -----------------
@@ -86,6 +86,8 @@ public static class PixelArt
     public static Sprite[] CoinSpin => _coinSpin ??= BuildCoinSpin();
     public static Sprite Boss => _boss ??= BuildBoss();
     public static Sprite Muzzle => _muzzle ??= BuildMuzzle();
+    /// <summary>Variantes de mancha de gore (blancas, tintables con SpriteRenderer.color).</summary>
+    public static Sprite[] Splats => _splats ??= BuildSplats();
 
     // ===================================================================
     //  SOLDADO (jugador) — vista 3/4 desde arriba, casco + fusil hacia arriba
@@ -394,6 +396,54 @@ public static class PixelArt
         // Halo medio y núcleo brillante.
         Disc(px, cx, cy, rMid, MZ_MID);
         Disc(px, cx, cy, rIn, MZ_CORE);
+        return ToSprite(px);
+    }
+
+    // ===================================================================
+    //  MANCHA DE GORE (suelo) — silueta orgánica, blanca para tintar
+    // ===================================================================
+
+    /// <summary>
+    /// 3 variantes de salpicadura: núcleo elíptico achatado + lóbulos solapados
+    /// + gotas satélite, todo en blanco (el tinte lo pone Vfx.Gore por color del
+    /// zombie). Semilla FIJA: las formas son estables entre sesiones; la
+    /// variedad por muerte la dan la variante elegida y la rotación aleatoria.
+    /// </summary>
+    static Sprite[] BuildSplats()
+    {
+        var rng = new System.Random(0xB100D);
+        var arr = new Sprite[3];
+        for (int i = 0; i < arr.Length; i++) arr[i] = BuildSplat(rng);
+        return arr;
+    }
+
+    static Sprite BuildSplat(System.Random rng)
+    {
+        var px = NewBuf();
+        float cx = S / 2f, cy = S / 2f;
+
+        // Núcleo achatado (charco visto desde arriba).
+        Ellipse(px, cx, cy, S * 0.24f, S * 0.17f, Color.white);
+
+        // Lóbulos pegados al núcleo → borde irregular (nada de rectángulo).
+        int lobes = 5 + rng.Next(3);
+        for (int k = 0; k < lobes; k++)
+        {
+            float a = (float)(rng.NextDouble() * Mathf.PI * 2.0);
+            float d = S * Mathf.Lerp(0.10f, 0.22f, (float)rng.NextDouble());
+            float r = S * Mathf.Lerp(0.06f, 0.13f, (float)rng.NextDouble());
+            Disc(px, cx + Mathf.Cos(a) * d, cy + Mathf.Sin(a) * d * 0.65f, r, Color.white);
+        }
+
+        // Gotas satélite sueltas alrededor.
+        int drops = 3 + rng.Next(3);
+        for (int k = 0; k < drops; k++)
+        {
+            float a = (float)(rng.NextDouble() * Mathf.PI * 2.0);
+            float d = S * Mathf.Lerp(0.28f, 0.42f, (float)rng.NextDouble());
+            float r = S * Mathf.Lerp(0.025f, 0.055f, (float)rng.NextDouble());
+            Disc(px, cx + Mathf.Cos(a) * d, cy + Mathf.Sin(a) * d * 0.65f, r, Color.white);
+        }
         return ToSprite(px);
     }
 

@@ -124,6 +124,7 @@ public static class ArtCache
             case "characters/soldier_shoot":  return PixelArt.SoldierShoot;
             case "characters/zombie_shamble": return PixelArt.ZombieShamble;
             case "items/coin_spin":           return PixelArt.CoinSpin;
+            case "fx/splats":                 return PixelArt.Splats; // variantes, no animación
             default:                          return null;
         }
     }

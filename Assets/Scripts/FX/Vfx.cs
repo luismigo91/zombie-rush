@@ -129,9 +129,24 @@ public static class Vfx
                 gravity: -9f, friction: 1.5f, spin: Random.Range(-720f, 720f), shrink: true);
         }
 
-        // Mancha plana oscurecida del tinte que se queda en el suelo.
+        // Mancha oscurecida del tinte que se queda en el suelo. Salpicadura de
+        // silueta orgánica (variante + rotación aleatorias): el quad plano
+        // anterior se veía como "un rectángulo del color del zombie" al morir.
         Color stainCol = new Color(tint.r * 0.45f, tint.g * 0.45f, tint.b * 0.45f, 0.55f);
-        var stain = Prims.Make("VfxStain", stainCol, new Vector2(0.7f, 0.45f), pos, sortingOrder: 8);
+        var splats = ArtCache.Sprites("fx/splats");
+        GameObject stain;
+        if (splats.Length > 0)
+        {
+            float s = Random.Range(0.75f, 1.05f);
+            stain = Prims.MakeSprite("VfxStain", splats[Random.Range(0, splats.Length)],
+                stainCol, new Vector2(s, s), pos, sortingOrder: 8);
+            stain.transform.rotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
+        }
+        else
+        {
+            // Último recurso (sin arte ni fallback): el quad plano de siempre.
+            stain = Prims.Make("VfxStain", stainCol, new Vector2(0.7f, 0.45f), pos, sortingOrder: 8);
+        }
         VfxRunner.Inst.StartCoroutine(FadeAndDestroy(stain, 0.5f, hold: 0.1f));
     }
 
