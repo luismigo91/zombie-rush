@@ -58,7 +58,10 @@ public class SniperHero : MonoBehaviour
         // 22 u/s el error de puntería es mínimo). Daño alto de un solo objetivo.
         Vector3 muzzle = visual != null ? visual.position : transform.position;
         Vector2 dir = ((Vector2)(target.transform.position - muzzle)).normalized;
-        float damage = (25f + 5f * gm.Level) * Perks.DamageMult * StartingPoint.DamageMult;
+        // Mismo stack ADITIVO que SquadShooter (perks + tienda se suman, no se
+        // multiplican entre sí) para que todas las fuentes de daño escalen igual.
+        float damage = (25f + 5f * gm.Level)
+            * (1f + (Perks.DamageMult - 1f) + (StartingPoint.DamageMult - 1f));
         Bullet.Spawn(muzzle + (Vector3)(dir * 0.35f), dir, 22f, damage, pierce: 0);
         Vfx.Muzzle(muzzle);
         Sfx.Shoot();

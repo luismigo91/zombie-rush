@@ -44,17 +44,23 @@ public static class LevelGenerator
         def.bossHealth = isBoss ? (400f + n * 80f) * (1f + n * 0.10f) : 0f;
 
         // La amenaza escala con el NIVEL (n), no por acto → reto creciente nivel a nivel.
-        // La vida crece SUBLINEAL (n^0.80): con vida y tamaño de horda lineales a la
-        // vez, la presión total era ~cuadrática y ninguna progresión del jugador
-        // podía seguirla (playtest: "imposible en niveles altos"). El exponente lo
-        // calibra el simulador (0.85→0.82→0.80): la progresión del jugador se agota
-        // hacia el nivel ~60 y la cola 90-100 se volvía muro; el último ajuste
-        // compensa las hordas COMPACTAS (menos tiempo de exposición al fuego).
-        // Exponente 0.84: recalibrado para el rediseño de cap 30 — el stack de
-        // mejoras (perks +12 %, tienda +5 %, gates de run) es más gordo que antes
-        // y con 0.80 el simulador daba la campaña entera en paseo.
-        float zHp = 22f + 5.5f * Mathf.Pow(n, 0.84f);
-        float zSpd = 1.5f + n * 0.035f;   // velocidad ramping (cap natural)
+        // Historia: vida sublineal (n^0.85→0.82→0.80→0.84) calibrada contra el stack
+        // MULTIPLICATIVO de mejoras — aun así el sim daba 100/100 niveles "holgado".
+        // Retune 2026-07: el stack pasó a ADITIVO (SquadShooter) → el jugador tiene
+        // TECHO real (caps de perks/tienda/run saturan hacia el nivel ~50), así que
+        // la vida escala LINEAL a su ritmo y SATURA con él: pendiente plena hasta
+        // n=50 y al 30 % después (el recuento de horda sigue subiendo hasta su cap
+        // en n≈80 — la presión total crece, pero ya no entierra un DPS con techo).
+        // Curvas cuadráticas o lineales puras daban 39-51 niveles IMPOSIBLES (CSV).
+        // Pendiente 3.05 y meseta al 10 % tras n=50: calibradas en 8 pasadas del
+        // simulador (3.4/cuadrática = 25-51 imposibles; 3.2 = 12) hasta dejar la
+        // cola en crítico/justo con picos raros. zHp: n10 ≈ 53, n50 ≈ 175, n100 ≈ 190.
+        float nEff = n <= 50 ? n : 50f + (n - 50) * 0.10f;
+        float zHp = 22f + 3.05f * nEff;
+        // Velocidad SATURADA en n=70 (antes crecía sin tope): cada punto de
+        // velocidad recorta la ventana de fuego — era el multiplicador oculto que
+        // seguía componiendo presión en la cola contra un jugador ya plano.
+        float zSpd = 1.5f + Mathf.Min(n, 70) * 0.035f;
         def.baseZombieHealth = zHp;       // el goteo de fondo del runner las reutiliza
         def.baseZombieSpeed = zSpd;
 
@@ -70,6 +76,11 @@ public static class LevelGenerator
         float beat = Mathf.Max(1.6f, 2.8f - n * 0.04f); // hordas más frecuentes según sube el nivel
         float t = 2f;
         bool reward = false;
+
+        // Mejora de RUN (+% daño/cadencia): UNA por acto, garantizada en el primer
+        // hueco de recompensa del nivel x5. Antes salía en ~28 % de los pares de
+        // gates y su acumulación era la pata sin tope del stack de daño.
+        bool runUpgradePending = weaponGates && (n % 10) == 5;
 
         while (t < def.duration - 4f)
         {
@@ -110,7 +121,15 @@ public static class LevelGenerator
 
             if (reward)
             {
-                if (cages && rng.NextDouble() < 0.33)
+                if (runUpgradePending)
+                {
+                    // Nivel x5: la mejora de run va garantizada en el primer hueco
+                    // de recompensa (sin roll de jaula que pudiera saltársela).
+                    runUpgradePending = false;
+                    ev.type = EncounterType.GatePair;
+                    FillRunUpgradeGate(ev, act, rng);
+                }
+                else if (cages && rng.NextDouble() < 0.33)
                 {
                     ev.type = EncounterType.Cage;
                     ev.survivors = 3 + act / 2 + rng.Next(0, 3); // a escala del cap de 30
@@ -143,8 +162,10 @@ public static class LevelGenerator
                     ev.type = EncounterType.Horde;
                     // Hordas dimensionadas al ESCUADRÓN DE 30 (rediseño): cada baja
                     // es un 3 % del cap, así que la masa baja y el reto pasa por
-                    // matar con MEJORAS, no por tanquear con recuento.
-                    ev.hordeCount = 12 + Mathf.FloorToInt(n * 1.25f) + rng.Next(0, 6 + act);
+                    // matar con MEJORAS, no por tanquear con recuento. El recuento
+                    // SATURA en n=70 (como la vida): el jugador tiene techo y la
+                    // presión count×hp no puede seguir componiéndose contra él.
+                    ev.hordeCount = 12 + Mathf.FloorToInt(Mathf.Min(n, 70) * 1.25f) + rng.Next(0, 6 + act);
                     ev.zombieHealth = zHp;
                     ev.zombieSpeed = zSpd;
                 }
@@ -157,6 +178,18 @@ public static class LevelGenerator
         return def;
     }
 
+    /// <summary>Gate de mejora de RUN (+15 % daño o +10 % cadencia) contra +N
+    /// soldados: la elección "poder ahora vs masa". Solo lo emite el nivel x5 de
+    /// cada acto (una mejora por acto, garantizada).</summary>
+    static void FillRunUpgradeGate(LevelEvent ev, int act, System.Random rng)
+    {
+        bool dmg = rng.NextDouble() < 0.6;
+        ev.leftEffect = dmg ? GateEffect.RunDamage : GateEffect.RunFireRate;
+        ev.leftValue = dmg ? 0.15f : 0.10f;
+        ev.rightEffect = GateEffect.Add;
+        ev.rightValue = 3 + act + rng.Next(0, 3);
+    }
+
     static void FillGatePair(LevelEvent ev, int act, System.Random rng, bool weaponGates, bool gatesPair)
     {
         int addVal = 3 + act + rng.Next(0, 3);                     // crecimiento G (cap de squad 30)
@@ -167,18 +200,6 @@ public static class LevelGenerator
         {
             ev.leftEffect = GateEffect.Weapon; ev.leftValue = 1f;
             ev.rightEffect = GateEffect.Add;   ev.rightValue = addVal;
-            return;
-        }
-
-        // Gate de MEJORA DE RUN (+% daño o cadencia): con el cap de escuadrón en 30
-        // el recuento se llena pronto — estas son el crecimiento del resto de la run.
-        if (weaponGates && rng.NextDouble() < 0.28)
-        {
-            bool dmg = rng.NextDouble() < 0.6;
-            ev.leftEffect = dmg ? GateEffect.RunDamage : GateEffect.RunFireRate;
-            ev.leftValue = dmg ? 0.15f : 0.10f;
-            ev.rightEffect = GateEffect.Add;
-            ev.rightValue = addVal;
             return;
         }
 

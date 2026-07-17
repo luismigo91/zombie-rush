@@ -56,17 +56,25 @@ public class SquadShooter : MonoBehaviour
         int streams = Mathf.Clamp(Mathf.RoundToInt(fireWidth / streamSpacing) + tier.extraStreams, 1, maxStreams);
         streams = Mathf.Min(streams, n);
 
+        // Progresión ADITIVA entre fuentes (perks + gates de run): multiplicarlas
+        // entre sí llevaba el stack de cadencia a ×3.5; el power-up Rapid sigue
+        // multiplicando (pico temporal, no progresión).
+        float frStack = 1f + (Perks.FireRateMult - 1f) + (gm.RunFireRateMult - 1f);
         float interval = 1f / Mathf.Max(0.01f,
-            fireRate * tier.fireRateMult * Perks.FireRateMult * gm.RunFireRateMult * rapidFactor);
+            fireRate * tier.fireRateMult * frStack * rapidFactor);
         // DPS SUBLINEAL con el nº de soldados: lineal (×n) hacía que crecer
         // multiplicara la potencia ×5-12 y ninguna curva de vida podía perseguirlo
         // (todo moría antes de llegar). n^0.75: sublineal para que la horda mantenga
         // presión, pero menos plano que el 0.72 original — combinado con el
         // escalado de vida por soldado, crecer apenas se notaba (playtest).
         float effN = 1.9f * Mathf.Pow(n, 0.75f);
-        // El daño combina arma (tier), perks de la run, tienda y gates de mejora.
-        float damagePerStream = baseDamage * tier.damageMult * Perks.DamageMult
-            * StartingPoint.DamageMult * gm.RunDamageMult * effN / streams;
+        // Daño: el TIER multiplica (progresión de arma, satura en Láser); perks,
+        // tienda y gates de run se SUMAN entre sí. El producto de los tres (×19
+        // a tope) dejaba cualquier curva de vida de horda sin opciones — el
+        // simulador daba 100/100 niveles "holgado" (retune 2026-07).
+        float dmgStack = 1f + (Perks.DamageMult - 1f) + (StartingPoint.DamageMult - 1f)
+            + (gm.RunDamageMult - 1f);
+        float damagePerStream = baseDamage * tier.damageMult * dmgStack * effN / streams;
         float cx = transform.position.x;
         float y = squad.TopY;
 

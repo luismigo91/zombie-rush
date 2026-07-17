@@ -33,11 +33,17 @@ public class GameManager : MonoBehaviour
     public void RaiseWeaponTier() => WeaponTier = Mathf.Min(WeaponTier + 1, Weapons.MaxTier);
 
     /// <summary>Mejoras de RUN de los gates (+% daño/cadencia). Viven lo que el
-    /// GameManager: un nivel en campaña, toda la partida en los modos sin fin.</summary>
+    /// GameManager: un nivel en campaña, toda la partida en los modos sin fin.
+    /// TOPADAS: son un sumando más del stack aditivo de daño/cadencia y sin tope
+    /// las runs largas (modos sin fin) seguían componiendo sin límite.</summary>
+    public const float RunDamageCap = 2.5f;   // +150 %
+    public const float RunFireRateCap = 1.8f; // +80 %
     public float RunDamageMult { get; private set; } = 1f;
     public float RunFireRateMult { get; private set; } = 1f;
-    public void AddRunDamage(float frac) => RunDamageMult += frac;
-    public void AddRunFireRate(float frac) => RunFireRateMult += frac;
+    public void AddRunDamage(float frac) =>
+        RunDamageMult = Mathf.Min(RunDamageMult + frac, RunDamageCap);
+    public void AddRunFireRate(float frac) =>
+        RunFireRateMult = Mathf.Min(RunFireRateMult + frac, RunFireRateCap);
 
     /// <summary>Cartas de perk que ofrece la victoria (vacío si todo está al tope).</summary>
     public PerkType[] PerkChoices { get; private set; } = System.Array.Empty<PerkType>();
@@ -69,6 +75,11 @@ public class GameManager : MonoBehaviour
         Instance = this;
         Level = Campaign.Current;                  // nivel actual de la campaña (persistente)
         WeaponTier = StartingPoint.BaseWeaponTier;  // arma base comprada en la tienda
+
+        // Arranque desde CHECKPOINT con la run limpia: concede el build estándar
+        // de perks de los niveles saltados — sin esto, empezar el acto 5 con cero
+        // perks contra la curva calibrada para ~40 sería un muro injugable.
+        if (RunConfig.Mode == GameMode.Campaign) Perks.EnsureBaseline(Level);
     }
 
     void Update()
@@ -159,18 +170,23 @@ public class GameManager : MonoBehaviour
         NewRecord = RunConfig.ReportEnd(EndedWave);
 
         // ROGUE-LITE (rediseño de playtest): perder termina la RUN — la campaña
-        // vuelve al nivel 1 y los perks (mejoras DE RUN) se reinician. Lo comprado
-        // en el menú (tienda/arsenal, con monedas) es lo único permanente.
+        // vuelve al CHECKPOINT del acto actual y los perks (mejoras DE RUN) se
+        // reinician (al reentrar, Awake concede el build estándar del checkpoint).
+        // Lo comprado en el menú (tienda/arsenal, con monedas) es lo único permanente.
         EndCampaignRun();
 
         Sfx.Lose();
     }
 
-    /// <summary>Cierra la run de campaña (derrota o abandono): nivel 1 y perks a cero.</summary>
+    /// <summary>Cierra la run de campaña (derrota o abandono): la campaña vuelve al
+    /// INICIO DEL ACTO actual (checkpoint, no al nivel 1 — el re-paseo de decenas
+    /// de niveles triviales era la mayor fuente de "se hace fácil") y los perks
+    /// se reinician.</summary>
     static void EndCampaignRun()
     {
         if (RunConfig.Mode != GameMode.Campaign) return;
-        Campaign.Current = 1;
+        int level = Instance != null ? Instance.Level : Campaign.Current;
+        Campaign.Current = Campaign.CheckpointFor(level);
         Perks.ResetAll();
     }
 

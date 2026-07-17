@@ -32,4 +32,16 @@ public static class Campaign
         PlayerPrefs.DeleteKey(BestKey);
         PlayerPrefs.Save();
     }
+
+    // ---- Checkpoints de acto (niveles 1, 11, 21, …, 91) ----
+
+    /// <summary>Inicio del acto al que pertenece el nivel dado (11 para 11-20, etc.).</summary>
+    public static int CheckpointFor(int level) => ((Mathf.Clamp(level, 1, 100) - 1) / 10) * 10 + 1;
+
+    /// <summary>
+    /// Checkpoint más alto desbloqueado: el inicio del acto del mejor nivel
+    /// ALCANZADO (Best es el mejor COMPLETADO, así que Best+1). Sin récord → 1.
+    /// El menú permite empezar la campaña desde cualquier checkpoint ≤ este.
+    /// </summary>
+    public static int MaxCheckpoint => CheckpointFor(Best + 1);
 }

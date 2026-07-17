@@ -125,4 +125,33 @@ public static class Perks
         foreach (var p in AllTypes) PlayerPrefs.DeleteKey(Key(p));
         PlayerPrefs.Save();
     }
+
+    /// <summary>
+    /// Piso de perks al empezar la run en un CHECKPOINT (nivel 11, 21, …): si la
+    /// run está limpia (0 perks elegidos), concede los niveles saltados con la
+    /// política greedy del simulador de balance (daño→cadencia→perforante→
+    /// refuerzos→blindaje→suerte→imán) — un build estándar equivalente al de
+    /// quien llega jugando desde el nivel 1. Con perks ya elegidos no toca nada
+    /// (una run en curso conserva las elecciones del jugador).
+    /// </summary>
+    public static void EnsureBaseline(int startLevel)
+    {
+        if (startLevel <= 1) return;
+
+        int picked = 0;
+        foreach (var p in AllTypes) picked += Level(p);
+        if (picked > 0) return;
+
+        int grants = startLevel - 1;
+        PerkType[] order =
+        {
+            PerkType.Damage, PerkType.FireRate, PerkType.Pierce,
+            PerkType.Reinforce, PerkType.StartShield, PerkType.Lucky, PerkType.Magnet,
+        };
+        foreach (var p in order)
+        {
+            while (grants > 0 && !IsMaxed(p)) { Grant(p); grants--; }
+            if (grants == 0) break;
+        }
+    }
 }

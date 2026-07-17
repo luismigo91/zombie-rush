@@ -51,8 +51,10 @@ public static class BalanceSimulator
         public float bank;
 
         public int StartUnits => 4 + 2 * spUnits + 2 * pReinf;
-        public float DmgMult => (1f + 0.12f * pDmg) * (1f + 0.05f * spDamage);
-        public float FrMult => 1f + 0.08f * pFr;
+        // Stack ADITIVO [sync SquadShooter retune 2026-07]: perks + tienda + gates
+        // de run se SUMAN entre sí (antes se multiplicaban); el tier multiplica aparte.
+        public float DmgStack(float runDmg) => 1f + 0.12f * pDmg + 0.05f * spDamage + runDmg;
+        public float FrStack(float runFr) => 1f + 0.08f * pFr + runFr;
         public int BonusPierce => pPierce;
         /// <summary>Bajas evitadas por power-ups esperados (pity + suerte).</summary>
         public float Mitigation => 0.14f + 0.02f * pLucky;
@@ -143,10 +145,10 @@ public static class BalanceSimulator
                         bool elite = ev.type == EncounterType.EliteHorde;
                         float progress = Mathf.Clamp01(ev.time / def.duration);
 
-                        // [sync LevelRunner.Play]
+                        // [sync LevelRunner.Play] (cap de horda 120, retune 2026-07)
                         int count = elite
                             ? Mathf.Min(80, ev.hordeCount)
-                            : Mathf.Min(130, ev.hordeCount + Mathf.FloorToInt(units * 0.3f));
+                            : Mathf.Min(120, ev.hordeCount + Mathf.FloorToInt(units * 0.3f));
                         float hpScale = (1f + units * 0.02f) * (1f + progress * 0.9f);
                         Mix(n, elite, out float hpMulAvg, out float spdMulAvg, out float pExp, out float pSpit);
                         float hpAvg = ev.zombieHealth * hpMulAvg * hpScale;
@@ -199,7 +201,7 @@ public static class BalanceSimulator
             // sueltos que bajo fuego concentrado mueren casi siempre — cuentan para
             // kills/monedas y una fracción pequeña se cuela (runners por los flancos).
             {
-                float trickleRate = Mathf.Min(4.5f, 0.7f + 0.035f * n);
+                float trickleRate = 0.6f + 0.028f * Mathf.Min(n, 70); // [sync LevelRunner goteo saturado]
                 float trickleN = trickleRate * def.duration;
                 kills += trickleN * 0.95f;
                 zombies += trickleN;
@@ -287,15 +289,17 @@ public static class BalanceSimulator
     {
         var t = Weapons.Get(tier);
         int pierce = t.pierce + p.BonusPierce;
-        // Pierce conservador: solo rinde con enemigos en columna y saturado a ×2.5
-        // (la primera pasada con ×(1+0.5p) inflaba el DPS de late game a ×4.5).
-        float pierceFactor = Mathf.Min(2.5f, 1f + pierce * 0.25f);
+        // Pierce HONESTO: el juego no multiplica el daño por pierce — una bala solo
+        // rinde de más si atraviesa enemigos APILADOS en su columna. Estimación
+        // conservadora (+10 %/nivel, tope ×1.5); el ×2.5 anterior inflaba el DPS
+        // tardío y enmascaraba el "100/100 holgado" real.
+        float pierceFactor = Mathf.Min(1.5f, 1f + pierce * 0.10f);
         float squad = 7f * 3.5f * t.damageMult * t.fireRateMult
-             * p.DmgMult * p.FrMult * (1f + runDmg) * (1f + runFr)
+             * p.DmgStack(runDmg) * p.FrStack(runFr)
              * 1.9f * Mathf.Pow(Mathf.Max(1f, units), 0.75f)
              * pierceFactor;
-        // Héroe francotirador [sync SniperHero]: daño/intervalo.
-        float sniper = p.sniper ? (25f + 5f * n) * p.DmgMult / 1.6f : 0f;
+        // Héroe francotirador [sync SniperHero]: daño/intervalo (stack sin bono de run).
+        float sniper = p.sniper ? (25f + 5f * n) * p.DmgStack(0f) / 1.6f : 0f;
         return squad + sniper;
     }
 
@@ -322,8 +326,8 @@ public static class BalanceSimulator
                 if (tier < Weapons.MaxTier) tier++;
                 else Grow(ref units, 6f * GateExecution, ref extraCoins);
                 break;
-            case GateEffect.RunDamage: runDmg += v; break;
-            case GateEffect.RunFireRate: runFr += v; break;
+            case GateEffect.RunDamage: runDmg = Mathf.Min(runDmg + v, 1.5f); break;   // [sync GameManager.RunDamageCap]
+            case GateEffect.RunFireRate: runFr = Mathf.Min(runFr + v, 0.8f); break;   // [sync GameManager.RunFireRateCap]
             default: units -= v; break; // Trap (solo si ambos lados son malos)
         }
     }

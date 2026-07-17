@@ -104,7 +104,9 @@ public class LevelRunner : MonoBehaviour
             trickleT -= Time.deltaTime;
             if (trickleT <= 0f)
             {
-                float rate = Mathf.Min(3.5f, 0.6f + 0.028f * def.index); // zombies/seg (escala cap 30)
+                // Goteo saturado en n=70, como vida/velocidad/recuento del generador:
+                // era otra fuente de presión que seguía componiendo en la cola.
+                float rate = 0.6f + 0.028f * Mathf.Min(def.index, 70); // zombies/seg (escala cap 30)
                 trickleT = 1f / rate;
                 SpawnTrickle();
             }
@@ -210,9 +212,10 @@ public class LevelRunner : MonoBehaviour
                 // (evita que el snowball convierta la run en un paseo).
                 int squadN = GameManager.Instance != null && GameManager.Instance.Squad != null
                     ? GameManager.Instance.Squad.Count : 0;
-                // Cap 90: masa dimensionada al escuadrón de 30 (cada baja pesa ×2.7
-                // más que con el cap antiguo de 80) — el muro es de balas, no de carne.
-                int count = Mathf.Min(90, ev.hordeCount + Mathf.FloorToInt(squadN * 0.3f));
+                // Cap 120 (antes 90): con el stack de daño ya ADITIVO, parte de la
+                // presión del late vuelve a ser de recuento; el pool de Enemy y el
+                // coste O(N) por frame lo absorben sin problema a 60 fps.
+                int count = Mathf.Min(120, ev.hordeCount + Mathf.FloorToInt(squadN * 0.3f));
                 // Presión de contacto: la vida de la horda sube con el escuadrón y el
                 // progreso del nivel, pero SUAVE (+2 %/soldado, +80 % al final).
                 // Los factores originales (+5 %/soldado, +100 %) apilados con el DPS

@@ -21,6 +21,7 @@ public class MenuUI : MonoBehaviour
     TextMeshProUGUI coinsLabel, levelLabel;
     TextMeshProUGUI survivalLabel, dailyLabel;
     TextMeshProUGUI abilityLabel, skinLabel, heroLabel;
+    TextMeshProUGUI checkpointLabel;
     Button heroBtn;
     ShopRow unitsRow, weaponRow, damageRow;
 
@@ -46,7 +47,8 @@ public class MenuUI : MonoBehaviour
     void Refresh()
     {
         if (coinsLabel != null) coinsLabel.text = Economy.Coins.ToString();
-        // Rogue-lite: cada run empieza en el nivel 1; el chip muestra el RÉCORD.
+        // Rogue-lite con CHECKPOINTS: la run empieza en el checkpoint elegido
+        // (selector bajo los chips); el chip muestra el RÉCORD.
         if (levelLabel != null)
             levelLabel.text = Campaign.Best > 0 ? $"Récord: Nv {Campaign.Best}" : "Nivel 1";
         if (survivalLabel != null)
@@ -57,6 +59,13 @@ public class MenuUI : MonoBehaviour
             dailyLabel.text = RunConfig.DailyBest > 0
                 ? $"DESAFÍO DIARIO\n{RunConfig.DailyModName} · ola {RunConfig.DailyBest}"
                 : $"DESAFÍO DIARIO\n{RunConfig.DailyModName}";
+        if (checkpointLabel != null)
+        {
+            int start = Campaign.Current;
+            checkpointLabel.text = start > 1
+                ? $"INICIO: NIVEL {start} · ACTO {(start - 1) / 10 + 1}"
+                : "INICIO: NIVEL 1";
+        }
         UpdateShopRow(unitsRow, StartStat.Units);
         UpdateShopRow(weaponRow, StartStat.Weapon);
         UpdateShopRow(damageRow, StartStat.Damage);
@@ -123,6 +132,24 @@ public class MenuUI : MonoBehaviour
             Haptics.Medium();
             SceneFade.Load("Game");
         });
+
+        // --- Selector de CHECKPOINT (~68.5% del alto, entre chips y JUGAR): cicla
+        // el nivel de inicio entre los actos desbloqueados (1 → 11 → 21 → …).
+        // Solo aparece con algún acto desbloqueado; JUGAR arranca en Campaign.Current.
+        if (Campaign.MaxCheckpoint > 1)
+        {
+            var cp = UGui.Rect(root, new Vector2(0.5f, 0.685f), new Vector2(0.5f, 0.685f),
+                Vector2.zero, Vector2.zero);
+            cp.sizeDelta = new Vector2(420f, 62f);
+            var cpBtn = UGui.Button(cp, "", 28, new Color(0.15f, 0.18f, 0.28f, 1f), UGui.Bone);
+            checkpointLabel = cpBtn.GetComponentInChildren<TextMeshProUGUI>();
+            cpBtn.onClick.AddListener(() =>
+            {
+                int next = Campaign.CheckpointFor(Campaign.Current) + 10;
+                Campaign.Current = next > Campaign.MaxCheckpoint ? 1 : next;
+                Refresh();
+            });
+        }
 
         // --- Modos sin fin: supervivencia + desafío diario (~49.5% del alto) ---
         var modes = UGui.Rect(root, new Vector2(0.5f, 0.495f), new Vector2(0.5f, 0.495f),
