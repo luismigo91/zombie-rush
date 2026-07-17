@@ -16,6 +16,9 @@ public class GameBootstrap : MonoBehaviour
 
     void Awake()
     {
+        // Sin objetivo explícito, Android renderiza a 30 fps (default de plataforma).
+        Application.targetFrameRate = 60;
+
         SetupCamera();
         PostProcessSetup.Build(); // volume URP: bloom, viñeta, color adjustments, film grain.
         Music.PlayGame();          // variante con pulso para el juego

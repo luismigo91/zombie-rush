@@ -9,6 +9,9 @@ public class MenuBootstrap : MonoBehaviour
 {
     void Awake()
     {
+        // Sin objetivo explícito, Android renderiza a 30 fps (default de plataforma).
+        Application.targetFrameRate = 60;
+
         // Cámara de fondo (evita el aviso "no cameras rendering" y pinta el color).
         GameObject camGo = GameObject.FindWithTag("MainCamera");
         Camera cam = camGo != null ? camGo.GetComponent<Camera>() : null;

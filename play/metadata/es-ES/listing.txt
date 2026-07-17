@@ -5,21 +5,26 @@ full_description: |
   mueve lateralmente y dispara recto; creces cruzando GATES y rescatando supervivientes
   mientras una horda de zombies te erosiona. Un dedo, sesiones de 1–3 min, vertical.
 
-  · Escuadrón-multitud: formación disco que se ensancha con tus soldados. Más unidades,
-    más cobertura de fuego.
-  · Gates y jaulas: elige entre +N, ×N y gates de arma; derriba jaulas para sumar
-    supervivientes. Tu poder crece DENTRO de la partida.
-  · 100 niveles deterministas: campaña con dificultad creciente, actos que introducen
-    mecánicas y un JEFE cada 10 niveles (con patrones de ataque).
-  · Power-ups in-run: bomba, ralentización, escudo y cadencia disparada que sueltan
-    los zombies.
-  · Armas con mecánica: pistola, subfusil y escopeta perforante.
-  · Eventos especiales: gate dorado, lluvia de jaulas y hordas élite.
-  · Meta-progresión: invierte tus monedas en el punto de partida (soldados y arma base).
+  · Escuadrón-multitud: formación en disco que se ensancha con tus soldados. Más
+    unidades, más cobertura de fuego. Si te alcanzan, pierdes soldados: el recuento
+    es tu vida.
+  · Gates y jaulas: elige entre +N, ×N, mejoras de daño/cadencia y gates de arma;
+    derriba jaulas para sumar supervivientes. Tu build crece DENTRO de la run.
+  · Campaña rogue-lite de 100 niveles deterministas: perks a elegir 1 de 3 al superar
+    cada nivel, actos que introducen mecánicas nuevas y un JEFE con patrón de ataque
+    cada 10 niveles. Si caes, nueva run: conservas monedas y tienda.
+  · 6 armas con mecánica propia: de la pistola al minigun y el láser perforante.
+  · Habilidades activas equipables: granada, congelación y centinela.
+  · Zombies con counterplay: corredores, tanques, exploders, escupidores y screamers.
+  · Power-ups in-run: bomba, ralentización, escudo y cadencia disparada.
+  · Modos sin fin: SUPERVIVENCIA por oleadas y DESAFÍO DIARIO con modificador del
+    día y récords.
+  · Niveles nocturnos, héroe francotirador desbloqueable y skins para tu escuadrón.
+  · Meta-progresión: invierte tus monedas en el punto de partida permanente.
 
-  Sin anuncios. Sin recolección de datos. Juego 100% offline.
+  Sin anuncios. Sin recopilación de datos. Juego 100% offline.
 
-category: Game > Action
-content_rating: Teen (Fantasy Violence)
-privacy_policy_url: 
-website: https://github.com/luismigo91/zombie-dash
+category: Game > Arcade
+content_rating: ESRB E10+ (Fantasy Violence, Mild Blood) — IARC enviado 2026-07-17
+privacy_policy_url: https://luismigo91.github.io/zombie-rush-legal/
+website: https://github.com/luismigo91/zombie-rush
