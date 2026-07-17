@@ -23,6 +23,8 @@ public class PauseMenu : MonoBehaviour
     GameObject panel;
     TextMeshProUGUI musicLabel, sfxLabel, vibrationLabel;
     Image musicIcon, sfxIcon, vibrationIcon;
+    Slider musicSlider, sfxSlider;
+    float lastSfxPreview; // throttle del click de preview al arrastrar el slider SFX
 
     public bool IsOpen => visible;
 
@@ -98,9 +100,9 @@ public class PauseMenu : MonoBehaviour
         // Overlay oscuro.
         UGui.AddImage(rt, new Color(0, 0, 0, 0.6f), UGui.White, false);
 
-        // Panel central.
+        // Panel central (alto 760: deja sitio a los sliders de volumen).
         var card = UGui.Rect(rt, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            new Vector2(-280f, -360f), new Vector2(280f, 360f));
+            new Vector2(-280f, -380f), new Vector2(280f, 380f));
         UGui.AddImage(card, UGui.PanelColor, UGui.Rounded);
 
         // Título pegado a la parte alta de la tarjeta (24-104 px bajo el borde).
@@ -108,22 +110,19 @@ public class PauseMenu : MonoBehaviour
             new Vector2(0f, -104f), new Vector2(0f, -24f));
         UGui.Text(titleR, "PAUSA", 48, UGui.CyanNeon, TextAlignmentOptions.Center, bold: true);
 
-        // Botones: las Y son relativas al CENTRO de la tarjeta (alto 720 → ±360).
-        // Empiezan en positivo bajo el título; antes arrancaban en -180 y los
-        // toggles caían FUERA de la tarjeta (menú descuadrado, playtest).
-        float y = 170f;
-        var resume = MakeButton(card, y, "REANUDAR", UGui.CyanNeon);
+        // Botones: las Y son relativas al CENTRO de la tarjeta (alto 760 → ±380).
+        // Y explícitas: los toggles de Música/SFX llevan su slider de volumen
+        // pegado debajo (gap 4) y entre filas grandes hay gap 24.
+        var resume = MakeButton(card, 200f, "REANUDAR", UGui.CyanNeon);
         AddButtonIcon(resume, "icon_play");
         resume.onClick.AddListener(Close);
-        y -= 104f;
 
-        var menu = MakeButton(card, y, "MENÚ", UGui.CyanNeon);
+        var menu = MakeButton(card, 96f, "MENÚ", UGui.CyanNeon);
         AddButtonIcon(menu, "icon_home");
         menu.onClick.AddListener(() => { Close(); SceneFade.Load("MainMenu"); });
-        y -= 104f;
 
         // Toggles (el sprite on/off se fija en RefreshToggles).
-        var music = MakeButton(card, y, "", new Color(0.15f, 0.18f, 0.28f, 1f));
+        var music = MakeButton(card, -8f, "", new Color(0.15f, 0.18f, 0.28f, 1f));
         musicLabel = music.GetComponentInChildren<TextMeshProUGUI>();
         musicIcon = AddButtonIcon(music, "icon_music");
         music.onClick.AddListener(() =>
@@ -131,9 +130,10 @@ public class PauseMenu : MonoBehaviour
             SettingsStore.MusicOn = !SettingsStore.MusicOn;
             RefreshToggles();
         });
-        y -= 88f;
+        musicSlider = MakeVolumeSlider(card, -70f);
+        musicSlider.onValueChanged.AddListener(v => SettingsStore.MusicVolume = v);
 
-        var sfx = MakeButton(card, y, "", new Color(0.15f, 0.18f, 0.28f, 1f));
+        var sfx = MakeButton(card, -152f, "", new Color(0.15f, 0.18f, 0.28f, 1f));
         sfxLabel = sfx.GetComponentInChildren<TextMeshProUGUI>();
         sfxIcon = AddButtonIcon(sfx, "icon_sfx");
         sfx.onClick.AddListener(() =>
@@ -141,9 +141,19 @@ public class PauseMenu : MonoBehaviour
             SettingsStore.SfxOn = !SettingsStore.SfxOn;
             RefreshToggles();
         });
-        y -= 88f;
+        sfxSlider = MakeVolumeSlider(card, -214f);
+        sfxSlider.onValueChanged.AddListener(v =>
+        {
+            SettingsStore.SfxVolume = v;
+            // Preview del volumen con throttle (un click por arrastre largo, no ráfaga).
+            if (Time.unscaledTime - lastSfxPreview > 0.25f)
+            {
+                lastSfxPreview = Time.unscaledTime;
+                Sfx.Click();
+            }
+        });
 
-        var vib = MakeButton(card, y, "", new Color(0.15f, 0.18f, 0.28f, 1f));
+        var vib = MakeButton(card, -296f, "", new Color(0.15f, 0.18f, 0.28f, 1f));
         vibrationLabel = vib.GetComponentInChildren<TextMeshProUGUI>();
         vibrationIcon = AddButtonIcon(vib, "icon_vibration");
         vib.onClick.AddListener(() =>
@@ -153,6 +163,14 @@ public class PauseMenu : MonoBehaviour
         });
 
         panel.SetActive(false);
+    }
+
+    /// <summary>Slider de volumen 0..1 pegado bajo su toggle (pista fina, alto 36).</summary>
+    Slider MakeVolumeSlider(Transform parent, float yCenter)
+    {
+        var r = UGui.Rect(parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            new Vector2(-190f, yCenter - 18f), new Vector2(190f, yCenter + 18f));
+        return UGui.Slider(r, new Color(0.10f, 0.12f, 0.20f, 1f), UGui.CyanNeon);
     }
 
     Button MakeButton(Transform parent, float yCenter, string label, Color bg)
@@ -188,6 +206,10 @@ public class PauseMenu : MonoBehaviour
         if (musicLabel != null) musicLabel.text = $"Música: {OnOff(SettingsStore.MusicOn)}";
         if (sfxLabel != null) sfxLabel.text = $"SFX: {OnOff(SettingsStore.SfxOn)}";
         if (vibrationLabel != null) vibrationLabel.text = $"Vibración: {OnOff(SettingsStore.VibrationOn)}";
+
+        // Sliders al valor guardado, sin disparar sus listeners al abrir el panel.
+        if (musicSlider != null) musicSlider.SetValueWithoutNotify(SettingsStore.MusicVolume);
+        if (sfxSlider != null) sfxSlider.SetValueWithoutNotify(SettingsStore.SfxVolume);
 
         // Variante on/off del icono (vibración solo tiene una: se atenúa en OFF).
         var ms = UGui.IconSprite(SettingsStore.MusicOn ? "icon_music" : "icon_music_off");

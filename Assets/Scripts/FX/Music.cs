@@ -56,8 +56,20 @@ public static class Music
             // Solo escribimos en la fuente de verdad si difiere, para romper la
             // recursión mutua: SettingsStore.MusicOn ya hace Music.Muted = !value.
             if (SettingsStore.MusicOn == value) SettingsStore.MusicOn = !value;
-            if (src != null) src.volume = value ? 0f : currentVolume;
+            if (src != null) src.volume = value ? 0f : EffectiveVolume;
         }
+    }
+
+    /// <summary>Volumen final: nivel de la pista × slider del jugador (0 si Muted).</summary>
+    static float EffectiveVolume => Muted ? 0f : currentVolume * SettingsStore.MusicVolume;
+
+    /// <summary>
+    /// Reaplica el volumen efectivo al AudioSource (rampa corta). Lo llama el
+    /// setter de SettingsStore.MusicVolume para que el slider se oiga en vivo.
+    /// </summary>
+    public static void RefreshVolume()
+    {
+        if (src != null) FadeTo(EffectiveVolume);
     }
 
     /// <summary>
@@ -150,16 +162,16 @@ public static class Music
         // Si ya está sonando este mismo clip, solo ajustamos volumen objetivo.
         if (src.clip == clip && src.isPlaying)
         {
-            FadeTo(Muted ? 0f : currentVolume);
+            FadeTo(EffectiveVolume);
             return;
         }
 
-        if (runner != null) runner.StartFadeSwap(src, clip, Muted ? 0f : currentVolume, 0.6f);
+        if (runner != null) runner.StartFadeSwap(src, clip, EffectiveVolume, 0.6f);
         else
         {
             // Fallback sin runner: swap directo.
             src.clip = clip;
-            src.volume = Muted ? 0f : currentVolume;
+            src.volume = EffectiveVolume;
             src.Play();
         }
     }

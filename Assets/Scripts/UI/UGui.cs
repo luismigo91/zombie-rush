@@ -215,7 +215,47 @@ public static class UGui
         cb.disabledColor = new Color(0.6f, 0.6f, 0.6f, 0.5f);
         cb.fadeDuration = 0.08f;
         btn.colors = cb;
+        // Punch de escala al pulsar (game-feel): lo heredan todos los botones.
+        rt.gameObject.AddComponent<ButtonPunch>();
         return btn;
+    }
+
+    /// <summary>
+    /// Slider horizontal 0..1: pista redondeada + relleno neón + handle circular.
+    /// La pista entera recibe el toque (en móvil tocar un punto salta el valor).
+    /// El llamante engancha onValueChanged y fija el valor inicial con
+    /// SetValueWithoutNotify para no disparar el listener al construir.
+    /// </summary>
+    public static Slider Slider(RectTransform rt, Color trackColor, Color fillColor)
+    {
+        // Pista de fondo (fina, centrada verticalmente en el rect).
+        var track = Rect(rt, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+            new Vector2(0f, -7f), new Vector2(0f, 7f));
+        var trackImg = AddImage(track, trackColor, Rounded);
+        trackImg.raycastTarget = true; // tocar la pista mueve el slider
+
+        // Zona de relleno (deja hueco a los lados para que el handle no se salga).
+        var fillArea = Rect(rt, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+            new Vector2(14f, -7f), new Vector2(-14f, 7f));
+        var fill = Rect(fillArea, Vector2.zero, new Vector2(0f, 1f), Vector2.zero, Vector2.zero);
+        AddImage(fill, fillColor, Rounded);
+
+        // Zona del handle + handle circular.
+        var handleArea = Rect(rt, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f),
+            new Vector2(14f, 0f), new Vector2(-14f, 0f));
+        var handle = Rect(handleArea, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+        handle.sizeDelta = new Vector2(30f, 30f);
+        var handleImg = AddImage(handle, Bone, Rounded);
+        handleImg.raycastTarget = true;
+
+        var slider = rt.gameObject.AddComponent<UnityEngine.UI.Slider>();
+        slider.fillRect = fill;
+        slider.handleRect = handle;
+        slider.targetGraphic = handleImg;
+        slider.direction = UnityEngine.UI.Slider.Direction.LeftToRight;
+        slider.minValue = 0f;
+        slider.maxValue = 1f;
+        return slider;
     }
 
     // ---- Iconos PNG (Resources/Art/ui, cargados vía ArtCache) ----

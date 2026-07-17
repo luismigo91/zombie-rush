@@ -50,6 +50,16 @@ public class Enemy : MonoBehaviour, IShootable
     Color baseColor;
     float flashT; // temporizador del destello blanco al recibir daño
 
+    // Flinch al encajar bala: squash de escala breve, SOLO visual (no toca la
+    // posición: un knockback real frenaría a la horda y ablandaría el juego).
+    const float FlinchDur = 0.09f;
+    float flinchT;
+    Vector3 baseScale = Vector3.one; // escala lógica (la fijan Create/ResetVisual)
+
+    // Anti-ráfaga del hit-stop de élites (Exploder/Tank): en PLAGA EXPLOSIVA
+    // mueren docenas por segundo y encadenar micro-pausas "ralla" (playtest).
+    static float lastEliteStopRt;
+
     // Comportamiento por variedad.
     float boostT;  // aceleración por grito de screamer (decae sola)
     float spitT;   // cadencia del spitter
@@ -120,6 +130,7 @@ public class Enemy : MonoBehaviour, IShootable
         var e = go.AddComponent<Enemy>();
         e.sr = go.GetComponent<SpriteRenderer>();
         e.baseColor = color;
+        e.baseScale = go.transform.localScale;
         return e;
     }
 
@@ -135,6 +146,8 @@ public class Enemy : MonoBehaviour, IShootable
         }
         baseColor = color;
         flashT = 0f;
+        flinchT = 0f;
+        baseScale = transform.localScale; // la escala recién fijada para este spawn
     }
 
     /// <summary>Crea el jefe del nivel: silueta masiva, mucha vida y patrón por acto.</summary>
@@ -213,6 +226,20 @@ public class Enemy : MonoBehaviour, IShootable
         {
             flashT -= Time.deltaTime;
             if (flashT <= 0f && sr != null) sr.color = baseColor;
+        }
+
+        // El squash de impacto también se restaura siempre. Local X es el eje
+        // VERTICAL en pantalla (rotación Facing −90°): se aplasta contra la bala
+        // y se ensancha a los lados, decayendo hasta la escala base.
+        if (flinchT > 0f)
+        {
+            flinchT -= Time.deltaTime;
+            if (flinchT <= 0f) transform.localScale = baseScale;
+            else
+            {
+                float k = (flinchT / FlinchDur) * 0.14f;
+                transform.localScale = new Vector3(baseScale.x * (1f - k), baseScale.y * (1f + k), 1f);
+            }
         }
 
         var gm = GameManager.Instance;
@@ -445,6 +472,9 @@ public class Enemy : MonoBehaviour, IShootable
         // (playtest: "no se ve qué pasa"). El jefe siempre muestra su daño.
         flashT = 0.07f;
         if (sr != null) sr.color = Color.white;
+        // Flinch (squash) al encajar la bala; el jefe no (con ~30 golpes/s
+        // estaría aplastado en permanencia y "vibraría").
+        if (!isBoss) flinchT = FlinchDur;
         if (isBoss || Random.value < 0.33f)
         {
             FloatingTextManager.Spawn(transform.position, Mathf.RoundToInt(damage).ToString(), new Color(1f, 0.95f, 0.5f));
@@ -487,6 +517,14 @@ public class Enemy : MonoBehaviour, IShootable
         // Hit-stop solo en el JEFE: congelar el tiempo en cada muerte normal (varias
         // por segundo) hacía que el juego "se rallara" a micro-parones (playtest).
         if (isBoss) Vfx.HitStop(0.08f);
+        // …y en ÉLITES escasos (Exploder/Tank), más corto y con anti-ráfaga: puntúa
+        // esas muertes sin recaer en los micro-parones que el playtest descartó.
+        else if ((kind == EnemyKind.Exploder || kind == EnemyKind.Tank)
+                 && Time.realtimeSinceStartup - lastEliteStopRt > 1.2f)
+        {
+            lastEliteStopRt = Time.realtimeSinceStartup;
+            Vfx.HitStop(0.045f);
+        }
         // Solo sacude la muerte del JEFE: con varias muertes por segundo el shake
         // continuo mareaba (feedback de playtest).
         if (isBoss) CameraShake.Shake(0.3f, 0.3f);

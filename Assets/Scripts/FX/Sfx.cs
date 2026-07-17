@@ -439,7 +439,8 @@ public static class Sfx
         if (src == null || clip == null) return;
         // Jitter de pitch leve para que el sonido no canse.
         src.pitch = 1f + Random.Range(-pitchJitter, pitchJitter);
-        src.PlayOneShot(clip, vol);
+        // Volumen del efecto × slider del jugador (cacheado en SettingsStore).
+        src.PlayOneShot(clip, vol * SettingsStore.SfxVolume);
         src.pitch = 1f; // restauramos para no afectar otros sonidos/clip de loop ajeno
     }
 
