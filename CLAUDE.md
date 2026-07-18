@@ -32,7 +32,7 @@ Genera `Builds/ZombieRush.apk` (IL2CPP+ARM64, portrait, package `com.luismiguel.
   -quit -batchmode -nographics -projectPath "$(pwd)" \
   -buildTarget WebGL -executeMethod BuildWeb.BuildWebGL -logFile -
 ```
-Genera `Builds/Web/` (gzip + fallback de descompresión → funciona en cualquier hosting estático; plantilla `Assets/WebGLTemplates/ZombieRush` con canvas 9:16 letterbox y soporte táctil). En el editor: menú *Zombie Rush → Build Web (WebGL)*. Probar en local: `cd Builds/Web && python3 -m http.server 8000` y abrir `http://localhost:8000`. Para publicar, sube el contenido de `Builds/Web/` tal cual a GitHub Pages o itch.io (proyecto HTML).
+Genera `Builds/Web/` (gzip + fallback de descompresión → funciona en cualquier hosting estático; plantilla `Assets/WebGLTemplates/ZombieRush` con canvas 9:16 letterbox y soporte táctil). En el editor: menú *Zombie Rush → Build Web (WebGL)*. Probar en local: `cd Builds/Web && python3 -m http.server 8000` y abrir `http://localhost:8000`. Para publicar, sube el contenido de `Builds/Web/` tal cual a GitHub Pages o itch.io (proyecto HTML). Alternativa sin Unity local: el workflow de GitHub Actions `build-web.yml` (GameCI) compila WebGL y sube `Builds/Web/` como artefacto descargable; necesita los secrets `UNITY_LICENSE`/`UNITY_EMAIL`/`UNITY_PASSWORD` (guía: https://game.ci/docs/github/activation).
 
 **Menús de editor** (`Assets/Editor/`, también por `-executeMethod`): `ZombieDashSetup.CreateGameScene`/`CreateMenuScene` (regeneran escenas), `URPSetup.Configure` (genera URP Asset + 2D Renderer y lo asigna en GraphicsSettings). `CreateGameData.CreateData` está dormante tras el pivote.
 

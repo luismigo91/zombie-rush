@@ -55,9 +55,17 @@ public static class BuildWeb
         BuildReport report = BuildPipeline.BuildPlayer(options);
         BuildSummary summary = report.summary;
         if (summary.result == BuildResult.Succeeded)
+        {
             Debug.Log($"BUILD_OK ruta={outPath} bytes={summary.totalSize}");
+        }
         else
+        {
             Debug.LogError($"BUILD_FAILED resultado={summary.result} errores={summary.totalErrors}");
+            // En headless (CI), el proceso debe salir con error para que el
+            // workflow marque el build como fallido.
+            if (Application.isBatchMode)
+                EditorApplication.Exit(1);
+        }
     }
 }
 #endif

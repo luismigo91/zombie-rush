@@ -83,6 +83,12 @@ cd Builds/Web && python3 -m http.server 8000   # → http://localhost:8000
 Para publicar, sube el contenido de `Builds/Web/` a GitHub Pages o itch.io (proyecto HTML).
 También desde el editor: menú **Zombie Rush → Build Web (WebGL)**.
 
+**Sin Unity local:** el workflow **Build Web (WebGL)** (`.github/workflows/build-web.yml`)
+compila en GitHub Actions con [GameCI](https://game.ci) y deja `Builds/Web/` como
+**artefacto descargable** (pestaña *Actions* → run → *Artifacts* → `ZombieRush-Web`).
+Se lanza a mano o en cada push a `main`. Requiere una vez los secrets `UNITY_LICENSE`,
+`UNITY_EMAIL` y `UNITY_PASSWORD` ([guía de activación](https://game.ci/docs/github/activation)).
+
 ## 🧱 Arquitectura (code-first)
 
 Cada escena se monta por código desde su *bootstrap* (un único GameObject): `GameBootstrap` (Game)

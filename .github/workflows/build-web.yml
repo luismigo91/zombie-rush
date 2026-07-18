@@ -1,0 +1,62 @@
+# Compila la versión web (WebGL) en GitHub Actions con GameCI y sube
+# `Builds/Web/` como artefacto descargable (pestaña Actions → run → Artifacts).
+#
+# Requiere 3 secrets del repo (Settings → Secrets and variables → Actions),
+# ver guía de activación: https://game.ci/docs/github/activation
+#   UNITY_LICENSE  → contenido del fichero .ulf (licencia Personal activada)
+#   UNITY_EMAIL    → email de la cuenta Unity
+#   UNITY_PASSWORD → contraseña de la cuenta Unity
+#
+# Se lanza a mano (Run workflow) o en cada push a main.
+name: Build Web (WebGL)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+# Si llegan varios pushes seguidos, cancela el build anterior en curso.
+concurrency:
+  group: build-web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-webgl:
+    name: Compilar WebGL
+    runs-on: ubuntu-latest
+    steps:
+      # LFS activado: los assets binarios (png, wav...) viven en Git LFS.
+      - name: Checkout (con LFS)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # La carpeta Library cacheada recorta el build de ~30-40 min a ~10.
+      - name: Cache de Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-WebGL-
+
+      # GameCI detecta la versión de Unity en ProjectSettings/ProjectVersion.txt
+      # y usa el mismo método de build que en local (BuildWeb.BuildWebGL).
+      - name: Build WebGL (GameCI)
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL
+          buildMethod: BuildWeb.BuildWebGL
+          versioning: None
+
+      - name: Subir artefacto (Builds/Web)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZombieRush-Web
+          path: Builds/Web
+          retention-days: 14
+          if-no-files-found: error
