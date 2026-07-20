@@ -61,8 +61,8 @@ public static class BuildWeb
         else
         {
             Debug.LogError($"BUILD_FAILED resultado={summary.result} errores={summary.totalErrors}");
-            // En headless (CI), el proceso debe salir con error para que el
-            // workflow marque el build como fallido.
+            // En headless (-batchmode), el proceso debe salir con código de error
+            // para que un build roto no pase por bueno en la shell.
             if (Application.isBatchMode)
                 EditorApplication.Exit(1);
         }
