@@ -64,6 +64,25 @@ Genera `Builds/ZombieRush.apk` (IL2CPP+ARM64, portrait, package `com.luismiguel.
 con **ambas escenas** (menú + juego) e **icono/splash**. Instalar: `adb install -r Builds/ZombieRush.apk`.
 También desde el editor: menú **Zombie Rush → Build APK (Android)**.
 
+## 🌐 Compilar versión web (WebGL)
+
+Requiere el módulo **WebGL Build Support** (Unity Hub → Installs → ⚙ → Add modules).
+
+```bash
+/Applications/Unity/Hub/Editor/6000.4.9f1/Unity.app/Contents/MacOS/Unity \
+  -quit -batchmode -nographics -projectPath "$(pwd)" \
+  -buildTarget WebGL -executeMethod BuildWeb.BuildWebGL -logFile -
+```
+Genera `Builds/Web/` con plantilla propia (canvas **9:16 con letterbox**, controles
+táctiles y de ratón) y compresión gzip con fallback, así que funciona en cualquier
+hosting estático. Probar en local:
+
+```bash
+cd Builds/Web && python3 -m http.server 8000   # → http://localhost:8000
+```
+Para publicar, sube el contenido de `Builds/Web/` a GitHub Pages o itch.io (proyecto HTML).
+También desde el editor: menú **Zombie Rush → Build Web (WebGL)**.
+
 ## 🧱 Arquitectura (code-first)
 
 Cada escena se monta por código desde su *bootstrap* (un único GameObject): `GameBootstrap` (Game)
@@ -88,7 +107,7 @@ y `MenuBootstrap` (MainMenu). Nada se cablea en el Inspector. Scripts en `Assets
 | `FX/Sfx` · `Music` · `Haptics` | Audio sintetizado y vibración. |
 | `UI/UiKit` · `Hud` · `MenuUI` · `PauseMenu` · `SceneFade` | UI IMGUI con look neón, HUD, menú/tienda, pausa, fundidos. |
 | **Editor** | |
-| `Editor/BuildAndroid` · `AppIconGen` | Build del APK e icono/splash generados. |
+| `Editor/BuildAndroid` · `BuildWeb` · `AppIconGen` | Builds de APK y WebGL, icono/splash generados. |
 | `Editor/ZombieDashSetup` · `CreateGameData` | Regeneran escenas / datos (menús *Zombie Rush*). |
 
 > Dormantes del juego anterior (compilan, sin uso): `Player/PlayerController`,

@@ -198,7 +198,8 @@ public class Hud : MonoBehaviour
     void UpdateTutorial()
     {
         tutorialTimer += Time.deltaTime;
-        bool touched = Input.GetMouseButton(0) || Input.touchCount > 0;
+        bool touched = Input.GetMouseButton(0) || Input.touchCount > 0
+                       || Input.GetAxisRaw("Horizontal") != 0f; // teclas de movimiento
         if (touched || tutorialTimer >= TutorialTimeout)
         {
             tutorialActive = false;
@@ -397,7 +398,13 @@ public class Hud : MonoBehaviour
         UGui.AddImage(rt, new Color(UGui.PanelColor.r, UGui.PanelColor.g, UGui.PanelColor.b, 0.85f), UGui.Rounded);
 
         var txt = UGui.Rect(rt, Vector2.zero, Vector2.one, new Vector2(20f, 0), new Vector2(-20f, 0));
-        UGui.Text(txt, "Arrastra para mover", 34, UGui.CyanNeon, TextAlignmentOptions.Center, bold: true);
+        // En web se juega con ratón y teclado; en móvil solo hay dedo.
+#if UNITY_WEBGL && !UNITY_EDITOR
+        const string hint = "Arrastra o usa ← →";
+#else
+        const string hint = "Arrastra para mover";
+#endif
+        UGui.Text(txt, hint, 34, UGui.CyanNeon, TextAlignmentOptions.Center, bold: true);
         tutorialObj.SetActive(tutorialActive);
     }
 

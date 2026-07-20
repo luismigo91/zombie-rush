@@ -17,7 +17,13 @@ public class GameBootstrap : MonoBehaviour
     void Awake()
     {
         // Sin objetivo explícito, Android renderiza a 30 fps (default de plataforma).
+        // En WebGL el default (-1) usa requestAnimationFrame, que es más fluido
+        // que forzar 60 con un timer de JS.
+#if UNITY_WEBGL && !UNITY_EDITOR
+        Application.targetFrameRate = -1;
+#else
         Application.targetFrameRate = 60;
+#endif
 
         SetupCamera();
         PostProcessSetup.Build(); // volume URP: bloom, viñeta, color adjustments, film grain.

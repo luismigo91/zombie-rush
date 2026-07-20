@@ -34,6 +34,9 @@ public class Squad : MonoBehaviour
 
     [Header("Movimiento")]
     public float moveMultiplier = 1f;   // sensibilidad del arrastre
+    // Teclado (flechas o A/D), pensado para la versión web en escritorio. A 5 u/s
+    // se cruza el carril de lado a lado en ~1 s: igual de ágil que un arrastre.
+    public float keyboardSpeed = 5f;
 
     [Header("Crecimiento")]
     public float growInterval = 0.035f; // tiempo entre apariciones (efecto "de uno en uno")
@@ -93,7 +96,7 @@ public class Squad : MonoBehaviour
     {
         var gm = GameManager.Instance;
         if (gm != null && gm.State == GameState.Playing)
-            HandleDrag();
+            HandleMovement();
 
         ProcessGrowth();
         Reflow(snap: false);
@@ -101,8 +104,18 @@ public class Squad : MonoBehaviour
 
     // ---------------------------------------------------------------- movimiento
 
-    void HandleDrag()
+    void HandleMovement()
     {
+        float delta = 0f;
+
+        // Teclado: el eje "Horizontal" ya trae flechas ← → y A/D. Es movimiento por
+        // velocidad (no relativo como el arrastre), así que usa deltaTime y respeta
+        // el hit-stop igual que el resto del juego.
+        float axis = Input.GetAxisRaw("Horizontal");
+        if (axis != 0f)
+            delta += axis * keyboardSpeed * Time.deltaTime;
+
+        // Puntero (dedo o ratón): desplazamiento relativo del arrastre.
         if (TryGetPointer(out Vector2 screenPos))
         {
             float worldX = cam.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 0f)).x;
@@ -111,17 +124,19 @@ public class Squad : MonoBehaviour
                 dragging = true;
                 lastPointerWorldX = worldX;
             }
-            float delta = (worldX - lastPointerWorldX) * moveMultiplier;
+            delta += (worldX - lastPointerWorldX) * moveMultiplier;
             lastPointerWorldX = worldX;
-
-            Vector3 p = transform.position;
-            p.x = Mathf.Clamp(p.x + delta, minX + Radius, maxX - Radius);
-            transform.position = p;
         }
         else
         {
             dragging = false;
         }
+
+        if (delta == 0f) return;
+
+        Vector3 p = transform.position;
+        p.x = Mathf.Clamp(p.x + delta, minX + Radius, maxX - Radius);
+        transform.position = p;
     }
 
     bool TryGetPointer(out Vector2 screenPos)

@@ -26,6 +26,14 @@ Genera `Builds/ZombieRush.apk` (IL2CPP+ARM64, portrait, package `com.luismiguel.
 
 **Instalar:** `~/Library/Android/sdk/platform-tools/adb install -r Builds/ZombieRush.apk`.
 
+**Compilar Web (WebGL, CLI headless):** requiere el módulo **WebGL Build Support** instalado desde Unity Hub.
+```bash
+/Applications/Unity/Hub/Editor/6000.4.9f1/Unity.app/Contents/MacOS/Unity \
+  -quit -batchmode -nographics -projectPath "$(pwd)" \
+  -buildTarget WebGL -executeMethod BuildWeb.BuildWebGL -logFile -
+```
+Genera `Builds/Web/` (gzip + fallback de descompresión → funciona en cualquier hosting estático; plantilla `Assets/WebGLTemplates/ZombieRush` con canvas 9:16 letterbox y soporte táctil). En el editor: menú *Zombie Rush → Build Web (WebGL)*. Probar en local: `cd Builds/Web && python3 -m http.server 8000` y abrir `http://localhost:8000`. Para publicar, sube el contenido de `Builds/Web/` tal cual a GitHub Pages o itch.io (proyecto HTML). El build web es **solo local** (no hay CI): compilarlo en GitHub Actions exigiría una licencia Unity en secrets, y se descartó.
+
 **Menús de editor** (`Assets/Editor/`, también por `-executeMethod`): `ZombieDashSetup.CreateGameScene`/`CreateMenuScene` (regeneran escenas), `URPSetup.Configure` (genera URP Asset + 2D Renderer y lo asigna en GraphicsSettings). `CreateGameData.CreateData` está dormante tras el pivote.
 
 ## Arquitectura (lee esto antes de tocar nada)
